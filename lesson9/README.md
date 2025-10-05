@@ -28,8 +28,11 @@ Use-case диаграмма приложения:
 
 Получившиеся директории и классы:
 
+<img width="436" height="505" alt="image" src="https://github.com/user-attachments/assets/a6bac7d5-58c1-4e46-9fd9-c73218dcac27" /> <img width="385" height="578" alt="image" src="https://github.com/user-attachments/assets/aa92cabc-ea48-4926-b49e-56b542ed58f7" />
+
 
 Logcat:
+
 
 
 
