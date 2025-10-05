@@ -5,8 +5,7 @@
 Были созданы диаграммы для проектирования приложения "Фитнес-мотивация"
 
 Use-case диаграмма приложения:
-<img width="1382" height="708" alt="image" src="https://github.com/user-attachments/assets/5b2d4aac-cd52-4a9d-a373-ffc82b545afd" />
-
+<img width="1388" height="679" alt="image" src="https://github.com/user-attachments/assets/14df388c-43c4-42af-86bc-80b447c769b7" />
 
 Задание №2
 Диаграмма с разделением приложения на слои: image
@@ -25,4 +24,5 @@ Use-case диаграмма приложения:
 
 image
 Logcat:
+
 
