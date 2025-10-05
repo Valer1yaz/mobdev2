@@ -33,6 +33,10 @@ Use-case диаграмма приложения:
 
 Logcat:
 
+<img width="1916" height="1004" alt="image" src="https://github.com/user-attachments/assets/76114577-a3f2-43c1-bb22-f99a1eb4d58b" />
+
+
+
 
 
 
