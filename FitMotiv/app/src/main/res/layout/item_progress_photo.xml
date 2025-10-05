@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="140dp"
+    android:layout_height="140dp"
+    android:orientation="vertical"
+    android:padding="8dp"
+    android:background="@drawable/photo_item_background"
+    android:layout_margin="4dp"
+    android:gravity="center">
+
+    <ImageView
+        android:id="@+id/ivPhoto"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:scaleType="centerCrop"
+        android:background="#E0E0E0"
+        android:contentDescription="Фото прогресса"
+        tools:ignore="ContentDescription" />
+
+    <TextView
+        android:id="@+id/tvDescription"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Описание"
+        android:textSize="12sp"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:textAlignment="center"
+        android:layout_marginTop="4dp" />
+
+    <TextView
+        android:id="@+id/tvDate"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="01.01.2024"
+        android:textSize="10sp"
+        android:textColor="#666666"
+        android:textAlignment="center" />
+
+    <TextView
+        android:id="@+id/tvLikes"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="❤️ 0"
+        android:textSize="10sp"
+        android:textColor="#FF4444"
+        android:textAlignment="center" />
+
+</LinearLayout>

@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp"
+    android:background="#f5f5f5"
+    tools:context=".presentation.activities.MainActivity">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!-- Заголовок приложения -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Фитнес-Мотиватор"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:textAlignment="center"
+            android:layout_marginBottom="24dp"
+            android:textColor="#2196F3" />
+
+        <!-- Мотивационная цитата -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Мотивация на сегодня:"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:cardCornerRadius="8dp"
+            app:cardElevation="4dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp"
+                android:background="#FFFFFF">
+
+                <TextView
+                    android:id="@+id/tvQuote"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Загрузка цитаты..."
+                    android:textSize="16sp"
+                    android:textStyle="italic"
+                    android:textColor="#666666" />
+
+                <Button
+                    android:id="@+id/btnGetQuote"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Новая цитата"
+                    android:layout_gravity="end"
+                    android:layout_marginTop="8dp"
+                    android:backgroundTint="#4CAF50" />
+
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Статистика тренировок -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Ваша статистика:"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:cardCornerRadius="8dp"
+            app:cardElevation="4dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp"
+                android:background="#FFFFFF">
+
+                <TextView
+                    android:id="@+id/tvWorkoutCount"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Тренировок: 0\nСожжено калорий: 0"
+                    android:textSize="16sp"
+                    android:lineSpacingExtra="4dp" />
+
+                <Button
+                    android:id="@+id/btnAddWorkout"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Добавить тренировку"
+                    android:layout_marginTop="12dp"
+                    android:backgroundTint="#2196F3" />
+
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Цели -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Ваши цели:"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:cardCornerRadius="8dp"
+            app:cardElevation="4dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp"
+                android:background="#FFFFFF">
+
+                <TextView
+                    android:id="@+id/tvGoalInfo"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Цель не установлена"
+                    android:textSize="16sp" />
+
+                <Button
+                    android:id="@+id/btnSetGoal"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Установить новую цель"
+                    android:layout_marginTop="12dp"
+                    android:backgroundTint="#FF9800" />
+
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Фото прогресса -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Фото прогресса:"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="150dp"
+            android:layout_marginBottom="16dp"
+            app:cardCornerRadius="8dp"
+            app:cardElevation="4dp">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvProgressPhotos"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="#FFFFFF"
+                android:padding="4dp" />
+
+        </androidx.cardview.widget.CardView>
+
+        <!-- Анализ упражнений -->
+        <Button
+            android:id="@+id/btnAnalyzeExercise"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Проанализировать упражнение"
+            android:layout_marginTop="8dp"
+            android:backgroundTint="#9C27B0"
+            android:textAllCaps="false" />
+
+    </LinearLayout>
+
+</ScrollView>
