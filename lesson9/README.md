@@ -15,17 +15,22 @@ Use-case диаграмма приложения:
 Задание №3
 Для выполнения задания был создан новый модуль «MovieProject», внутри которого были добавлены директории: domain, data и presentation. Были прописаны сценарии для сохранения любимого фильма и его отображения, также реализовано сохранение данных о фильме через SharedPreferences.
 
-Структура модуля: image
+Получившиеся директории и классы:
+<img width="610" height="782" alt="image" src="https://github.com/user-attachments/assets/0f92ff65-34b0-4d9e-9149-223215096d5f" />
 
-Приложение: image image
+
+Приложение: 
+<img width="1356" height="834" alt="image" src="https://github.com/user-attachments/assets/bc8c0078-59ab-4add-a832-4bf2c8f9e680" />
+<img width="510" height="761" alt="image" src="https://github.com/user-attachments/assets/d7f0f963-9d2e-4e10-8914-e1c8d883b1d5" /> <img width="405" height="725" alt="image" src="https://github.com/user-attachments/assets/66d30616-f1ae-4886-a68c-1c45d01845b4" />
 
 Задание №4
 Был создан новый проект , внутри которого созданы 3 необходимые директории, прописана логика, добавлены интерфейсы. Для проверки работы функций приложения был создан класс TestDataSource с тестовым набором данных, а в файле MainActivity реализована логика отображения результатов через Logcat.
 
-Структура проекта:
+Получившиеся директории и классы:
 
-image
+
 Logcat:
+
 
 
 
