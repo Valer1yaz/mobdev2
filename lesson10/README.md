@@ -66,7 +66,8 @@ Domain-слой:
 
 <img width="1862" height="881" alt="image" src="https://github.com/user-attachments/assets/155c30ee-085d-494c-a2a1-25f20ebdd96e" />
 
-<img width="482" height="859" alt="image" src="https://github.com/user-attachments/assets/ae12290e-01d9-4046-881a-70119f69fd10" />
+<img width="482" height="859" alt="image" src="https://github.com/user-attachments/assets/ae12290e-01d9-4046-881a-70119f69fd10" /> <img width="413" height="856" alt="image" src="https://github.com/user-attachments/assets/b650e635-cfa7-4b15-b716-94247776b969" />
+
 
 Через форму была произведена регистрация тестового пользователя. Вот его данные из файербейз:
 <img width="1321" height="570" alt="image" src="https://github.com/user-attachments/assets/d13b2790-4084-4a62-b778-bc077be2a8c8" />
