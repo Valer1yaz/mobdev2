@@ -21,4 +21,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "FitMotiv"
 include(":app")
- 
+include(":domain")
+include(":data")

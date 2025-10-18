@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "917794293331",
+    "project_id": "fitmotiv-6416c",
+    "storage_bucket": "fitmotiv-6416c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:917794293331:android:2081fb8e84ff793544a8a6",
+        "android_client_info": {
+          "package_name": "ru.mirea.zhemaytisvs.fitmotiv"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD-nWqAhHBPNTMpG6f1q59GNfHv_WC1BaI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
