@@ -53,13 +53,33 @@ Domain-слой:
 Задание №2. Создать новые модули data и domain. Перенести соответствующий
 код приложения в данные модули.
 
+<img width="503" height="646" alt="image" src="https://github.com/user-attachments/assets/629ab360-5ecd-490c-9ed1-105fd1037989" />
+
+<img width="496" height="620" alt="image" src="https://github.com/user-attachments/assets/df3da719-d2de-41b0-bb6b-3bd5285a1d6b" />
+
+<img width="512" height="760" alt="image" src="https://github.com/user-attachments/assets/395c52bf-5019-4477-af82-1fecc8fe9681" />
+
+
 Задание №3. Создать новую активити и реализовать в ней страницу авторизации с
 использованием firebase auth. Логику работы с FB распределить между тремя
-модулями. (работа с firebase рассматривалась в прошлом семестре).
+модулями.
 
-Задание №4. В репозитории реализовать три способа обработки данных:
+<img width="1862" height="881" alt="image" src="https://github.com/user-attachments/assets/155c30ee-085d-494c-a2a1-25f20ebdd96e" />
+
+<img width="482" height="859" alt="image" src="https://github.com/user-attachments/assets/ae12290e-01d9-4046-881a-70119f69fd10" />
+
+Через форму была произведена регистрация тестового пользователя. Вот его данные из файербейз:
+<img width="1321" height="570" alt="image" src="https://github.com/user-attachments/assets/d13b2790-4084-4a62-b778-bc077be2a8c8" />
+
+
+Задание №4. В репозитории реализованы способы обработки данных:
 - SharedPreferences, информация о клиенте
+
+<img width="1410" height="695" alt="image" src="https://github.com/user-attachments/assets/e39041d1-fcd3-4f56-a0bb-108da58625eb" />
+
 - Room и класс NetworkApi для работы с сетью с замоканными данными
+
+<img width="1812" height="825" alt="image" src="https://github.com/user-attachments/assets/f1a46171-e1bb-4fd5-b2ce-e2b2b9af91d1" />
 
 
 
