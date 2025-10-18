@@ -53,6 +53,19 @@ Domain-слой:
 Задание №2. Создать новые модули data и domain. Перенести соответствующий
 код приложения в данные модули.
 
+Модуль Domain:
+
+· Создан Java-модуль без Android зависимостей
+· Перенесены entity-классы: Workout, ProgressPhoto, UserGoal, ExerciseAnalysis, User
+· Добавлены интерфейсы репозиториев: WorkoutRepository, ProgressRepository, QuoteRepository, UserRepository, AuthRepository
+· Реализованы Use Cases: TrackWorkoutUseCase, GetWorkoutHistoryUseCase, AnalyzeExerciseUseCase, GetMotivationalQuoteUseCase, SetGoalUseCase, GetProgressPhotosUseCase
+
+Модуль Data:
+
+· Создан Android Library модуль
+· Перенесены реализации репозиториев: WorkoutRepositoryImpl, ProgressRepositoryImpl, QuoteRepositoryImpl, UserRepositoryImpl, AuthRepositoryImpl
+· Добавлены модели для хранения: WorkoutStorage, ProgressPhotoStorage, UserGoalStorage
+
 <img width="503" height="646" alt="image" src="https://github.com/user-attachments/assets/629ab360-5ecd-490c-9ed1-105fd1037989" />
 
 <img width="496" height="620" alt="image" src="https://github.com/user-attachments/assets/df3da719-d2de-41b0-bb6b-3bd5285a1d6b" />
@@ -63,6 +76,22 @@ Domain-слой:
 Задание №3. Создать новую активити и реализовать в ней страницу авторизации с
 использованием firebase auth. Логику работы с FB распределить между тремя
 модулями.
+
+Presentation Layer (app):
+
+· Создана LoginActivity с формами входа/регистрации
+· Реализован UI с переключением между формами
+· Добавлена кнопка "Продолжить как гость"
+
+Domain Layer:
+
+· Добавлены Use Cases: LoginUseCase, RegisterUseCase, LoginAsGuestUseCase, GetCurrentUserUseCase
+· Создана entity User с поддержкой гостевого режима
+
+Data Layer:
+
+· Реализован AuthRepositoryImpl с интеграцией Firebase Auth
+· Обработка callback-ов Firebase и преобразование в доменные модели
 
 <img width="1862" height="881" alt="image" src="https://github.com/user-attachments/assets/155c30ee-085d-494c-a2a1-25f20ebdd96e" />
 
@@ -76,13 +105,33 @@ Domain-слой:
 Задание №4. В репозитории реализованы способы обработки данных:
 - SharedPreferences, информация о клиенте
 
+  Создан SharedPrefStorage интерфейс и SharedPrefStorageImpl
+· Реализовано сохранение данных о тренировках, фото прогресса и целях пользователя
+· Добавлены мапперы между domain и storage моделями
+
 <img width="1410" height="695" alt="image" src="https://github.com/user-attachments/assets/e39041d1-fcd3-4f56-a0bb-108da58625eb" />
 
 - Room и класс NetworkApi для работы с сетью с замоканными данными
 
+Добавлены зависимости Room в data модуль
+· Подготовлена структура для будущей реализации
+
+NetworkApi с замоканными данными:
+
+· Создан класс NetworkApi с mock-реализацией
+· Реализованы методы: getMotivationalQuote(), getWorkoutsFromCloud(), syncWorkoutToCloud()
+· Добавлены модели сетевых ответов: QuoteResponse, WorkoutResponse
+
 <img width="1812" height="825" alt="image" src="https://github.com/user-attachments/assets/f1a46171-e1bb-4fd5-b2ce-e2b2b9af91d1" />
 
+Также во время выполнения заданий были:
+· Настроены зависимости между модулями в Gradle
+· Добавлена проверка прав доступа для гостевых пользователей
+· Реализован выход из аккаунта
+· Обновлен MainActivity для отображения информации о пользователе
 
+
+Приложение теперь соответствует требованиям "чистой архитектуры" с четким разделением ответственности между слоями.
 
 
 
