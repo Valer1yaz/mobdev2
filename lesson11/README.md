@@ -1,10 +1,12 @@
-Отчёт по практической работе №3
-Тема: Изучение архитектурных паттернов и внедрение MVVM в мобильное приложение
-
-Цель работы
+**Отчёт по практической работе №3**
+-----------
+**Тема:**
+Изучение архитектурных паттернов и внедрение MVVM в мобильное приложение
+-----------
+**Цель работы**
 Ознакомиться с основными архитектурными паттернами (MVC, MVP, MVVM, MVI, VIPER), провести их сравнительный анализ и реализовать шаблон MVVM в рамках модификации проекта из практической работы №1.
-
-Теоретическая часть
+-----------
+**Теоретическая часть**
 В ходе работы были рассмотрены следующие архитектурные подходы:
 
 MVC – разделение на модель, представление и контроллер;
@@ -26,8 +28,9 @@ VIPER – модульная архитектура с чётким раздел
 преимуществ и недостатков.
 
 Для дальнейшей реализации был выбран MVVM как наиболее подходящий для использования с LiveData и учёта жизненного цикла компонентов Android.
-
-Практическая часть
+-----------
+**Практическая часть**
+-----------
 Задача: Реорганизовать приложение для сохранения и отображения любимого фильма, перенести логику из Activity в ViewModel, обеспечить сохранение состояния при повороте экрана.
 
 1. Создание MainViewModel
@@ -38,7 +41,7 @@ VIPER – модульная архитектура с чётким раздел
 взаимодействие с use case-ами;
 
 управление состоянием через LiveData.
-
+-----------
 java
 public class MainViewModel extends ViewModel {
     private final MovieRepository movieRepository;
@@ -67,9 +70,10 @@ public class MainViewModel extends ViewModel {
         super.onCleared();
     }
 }
+-----------
 2. Реализация фабрики для ViewModel
 Для инкапсуляции логики создания зависимостей ViewModel была написана фабрика:
-
+-----------
 java
 public class ViewModelFactory implements ViewModelProvider.Factory {
     private final Context appContext;
@@ -86,6 +90,7 @@ public class ViewModelFactory implements ViewModelProvider.Factory {
         return (T) new MainViewModel(repo);
     }
 }
+-----------
 3. Обновление MainActivity
 В активности были выполнены следующие изменения:
 
@@ -94,7 +99,7 @@ public class ViewModelFactory implements ViewModelProvider.Factory {
 Подписка на изменения LiveData для автоматического обновления UI.
 
 Вынесение обработки кликов в отдельные методы.
-
+-----------
 java
 public class MainActivity extends AppCompatActivity {
     private MainViewModel vm;
@@ -135,7 +140,8 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.buttonGetMovie).setOnClickListener(v -> vm.loadMovie());
     }
 }
-Результаты
+-----------
+**Результаты**
 После запуска приложения данные успешно сохраняются и загружаются.
 
 При повороте экрана состояние интерфейса сохраняется, так как ViewModel не пересоздаётся.
