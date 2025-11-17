@@ -48,11 +48,11 @@ VIPER – модульная архитектура с чётким раздел
 
 управление состоянием через LiveData.
 
------------
-java
-public class MainViewModel extends ViewModel {
-    private final MovieRepository movieRepository;
-    private final MutableLiveData<String> favoriteMovie = new MutableLiveData<>();
+
+    java
+    public class MainViewModel extends ViewModel {
+        private final MovieRepository movieRepository;
+        private final MutableLiveData<String> favoriteMovie = new MutableLiveData<>();
 
     public MainViewModel(MovieRepository movieRepository) {
         this.movieRepository = movieRepository;
@@ -76,7 +76,7 @@ public class MainViewModel extends ViewModel {
     protected void onCleared() {
         super.onCleared();
     }
-}
+    }
 
 -----------
 2. Реализация фабрики для ViewModel
@@ -84,9 +84,9 @@ public class MainViewModel extends ViewModel {
 
 -----------
 
-java
-public class ViewModelFactory implements ViewModelProvider.Factory {
-    private final Context appContext;
+    java
+    public class ViewModelFactory implements ViewModelProvider.Factory {
+        private final Context appContext;
 
     public ViewModelFactory(Context context) {
         this.appContext = context.getApplicationContext();
@@ -99,7 +99,7 @@ public class ViewModelFactory implements ViewModelProvider.Factory {
         MovieRepository repo = new MovieRepositoryImpl(storage);
         return (T) new MainViewModel(repo);
     }
-}
+    }
 
 -----------
 
@@ -112,13 +112,12 @@ public class ViewModelFactory implements ViewModelProvider.Factory {
 
 Вынесение обработки кликов в отдельные методы.
 
------------
 
-java
-public class MainActivity extends AppCompatActivity {
-    private MainViewModel vm;
-    private EditText editText;
-    private TextView textView;
+    java
+    public class MainActivity extends AppCompatActivity {
+        private MainViewModel vm;
+        private EditText editText;
+        private TextView textView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -153,9 +152,9 @@ public class MainActivity extends AppCompatActivity {
 
         findViewById(R.id.buttonGetMovie).setOnClickListener(v -> vm.loadMovie());
     }
-}
+    }
 
------------
+
 
 **Результаты**
 -----------
