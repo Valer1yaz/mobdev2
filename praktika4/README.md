@@ -41,7 +41,8 @@ public class MainActivity extends AppCompatActivity {
 }
 ```
 
-<img width="1817" height="958" alt="image" src="https://github.com/user-attachments/assets/e126f85c-f4f2-4bc3-bfcd-7da9f3d241bf" />
+<img width="1811" height="943" alt="image" src="https://github.com/user-attachments/assets/e2f56379-5e18-4566-a43a-e97fe0921a15" />
+
 
 
 -----------
@@ -95,107 +96,141 @@ public class MainActivity extends AppCompatActivity {
 
 Был создан ещё один модуль для демонстрации работы с более современным и производительным компонентом RecyclerView. Для элемента списка была создана собственная разметка item_event.xml, содержащая ImageView для изображения и два TextView для заголовка и описания.
 
-Был создан класс данных HistoricalEvent, инкапсулирующий свойства исторического события: название, описание и идентификатор ресурса изображения. 
+<img width="1813" height="935" alt="image" src="https://github.com/user-attachments/assets/57aa2605-665b-401c-9dcf-97dfb90cccc0" />
+
+
+Был создан класс данных GarbageType, содержащий: название, описание и идентификатор ресурса изображения. 
 
 ```
-public class HistoricalEvent {
-    private String title;
+public class GarbageType {
+    private String eventName;
     private String description;
-    private int imageResId;
+    private String imageName;
+    private int year;
 
-    public HistoricalEvent(String title, String description, int imageResId) {
-        this.title = title;
+    public GarbageType(String eventName, String description, String imageName, int year) {
+        this.eventName = eventName;
         this.description = description;
-        this.imageResId = imageResId;
+        this.imageName = imageName;
+        this.year = year;
     }
 
-    public String getTitle() { return title; }
-    public String getDescription() { return description; }
-    public int getImageResId() { return imageResId; }
+    public String getEventName() {
+        return eventName;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public String getImageName() {
+        return imageName;
+    }
+
+    public int getYear() {
+        return year;
+    }
+
+    @Override
+    public String toString() {
+        return this.eventName + " (" + this.year + ")";
+    }
 }
 ```
 
 Для связи этих данных с представлением реализован адаптер EventAdapter, который включает в себя класс EventViewHolder. В адаптере переопределены стандартные методы: onCreateViewHolder() для создания нового экземпляра ViewHolder, onBindViewHolder() для привязки данных конкретного события к элементам интерфейса и getItemCount().
 
 ```
-public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHolder> {
-
-    private final List<HistoricalEvent> events;
-
-    public EventAdapter(List<HistoricalEvent> events) {
+public class EventRecyclerViewAdapter extends RecyclerView.Adapter<EventViewHolder> {
+    private List<GarbageType> events;
+    private Context context;
+    public EventRecyclerViewAdapter(List<GarbageType> events) {
         this.events = events;
     }
-
     @NonNull
     @Override
-    public EventViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.item_event, parent, false);
-        return new EventViewHolder(view);
+    public EventViewHolder onCreateViewHolder(@NonNull final ViewGroup parent, int viewType) {
+        context = parent.getContext();
+        View recyclerViewItem = LayoutInflater.from(context)
+                .inflate(R.layout.event_item_view, parent, false);
+        return new EventViewHolder(recyclerViewItem);
     }
-
     @Override
     public void onBindViewHolder(@NonNull EventViewHolder holder, int position) {
-        HistoricalEvent event = events.get(position);
-        holder.textTitle.setText(event.getTitle());
-        holder.textDescription.setText(event.getDescription());
-        holder.imageEvent.setImageResource(event.getImageResId());
+        GarbageType event = this.events.get(position);
+        String pkgName = context.getPackageName();
+        int resID = context.getResources().getIdentifier(event.getImageName(), "drawable", pkgName);
+        if (resID == 0) {
+            resID = R.drawable.ic_garbage;
+        }
+        holder.getFlagView().setImageResource(resID);
+        holder.getEventNameView().setText(event.getEventName());
+        holder.getDescriptionView().setText(event.getDescription());
+        holder.getYearView().setText(String.valueOf(event.getYear()));
     }
-
     @Override
     public int getItemCount() {
-        return events.size();
-    }
-
-    public static class EventViewHolder extends RecyclerView.ViewHolder {
-        ImageView imageEvent;
-        TextView textTitle, textDescription;
-
-        public EventViewHolder(@NonNull View itemView) {
-            super(itemView);
-            imageEvent = itemView.findViewById(R.id.imageEvent);
-            textTitle = itemView.findViewById(R.id.textTitle);
-            textDescription = itemView.findViewById(R.id.textDescription);
-        }
+        return this.events.size();
     }
 }
 ```
 
-В MainActivity был инициализирован RecyclerView и назначен ему LinearLayoutManager для линейного расположения элементов. Был создан список объектов HistoricalEvent, который передавался в конструктор адаптера. Настроенный адаптер был установлен для RecyclerView, что привело к отображению на экране прокручиваемого списка карточек с информацией о исторических событиях.
+В MainActivity был инициализирован RecyclerView и назначен ему LinearLayoutManager для линейного расположения элементов. Был создан список объектов, который передавался в конструктор адаптера. Настроенный адаптер был установлен для RecyclerView, что привело к отображению на экране прокручиваемого списка карточек с информацией о исторических событиях.
 
 ```
 public class MainActivity extends AppCompatActivity {
-
-    private RecyclerView recyclerView;
-    private EventAdapter adapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        recyclerView = findViewById(R.id.recyclerViewEvents);
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        List<GarbageType> events = getListData();
+        RecyclerView recyclerView = this.findViewById(R.id.recyclerView);
+        recyclerView.setAdapter(new EventRecyclerViewAdapter(events));
 
-        List<HistoricalEvent> events = new ArrayList<>();
-        events.add(new HistoricalEvent("Падение Римской империи",
-                "476 год — падение Западной Римской империи, конец античности.",
-                R.drawable.rome));
-        events.add(new HistoricalEvent("Открытие Америки",
-                "1492 год — Христофор Колумб достиг берегов Нового Света.",
-                R.drawable.columbus));
-        events.add(new HistoricalEvent("Первая мировая война",
-                "1914–1918 годы — крупнейший конфликт начала XX века.",
-                R.drawable.ww1));
-        events.add(new HistoricalEvent("Высадка на Луну",
-                "1969 год — Нил Армстронг сделал первый шаг на Луне.",
-                R.drawable.moon));
+        LinearLayoutManager layoutManager = new LinearLayoutManager(this,
+                LinearLayoutManager.VERTICAL, false);
+        recyclerView.setLayoutManager(layoutManager);
+    }
 
-        adapter = new EventAdapter(events);
-        recyclerView.setAdapter(adapter);
+    private List<GarbageType> getListData() {
+        List<GarbageType> list = new ArrayList<GarbageType>();
+
+        list.add(new GarbageType("Макулатура",
+                "Бумажные и картонные отходы, которые перерабатываются путем измельчения, очистки и превращения в новую бумажную продукцию",
+                "waste_paper", 105));
+
+        list.add(new GarbageType("Стеклобой",
+                "Битое стекло, которое дробится, плавится и используется для производства новой стеклянной тары и строительных материалов",
+                "glass_waste", 1500));
+
+        list.add(new GarbageType("Полимерные отходы",
+                "Пластиковые отходы, которые сортируются по типам пластика, измельчаются и переплавляются для создания новых изделий или химической переработки",
+                "polymer_waste", 1907));
+
+        list.add(new GarbageType("Металлолом",
+                "Черные и цветные металлы, которые переплавляются в печах для производства нового металла с значительной экономией энергии и ресурсов",
+                "metal_scrap", -3000));
+
+        list.add(new GarbageType("Органические отходы",
+                "Пищевые и растительные отходы, которые перерабатываются методами компостирования или анаэробного сбраживания с получением удобрений и биогаза",
+                "organic_waste", -10000));
+
+        return list;
     }
 }
 ```
+
+----------
+*Доработка FitMotiv*
+----------
+
+Создать в репозитории заглушки с набором данных (напр. которые
+планируете использовать при взаимодействии с API внешнего сервиса). Передать
+эти данные в слой представления с помощью LiveData и установить в RecycleView.
+
+
 
 
 
