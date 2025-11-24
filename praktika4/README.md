@@ -435,138 +435,26 @@ public class MainActivity extends AppCompatActivity {
     }
 }
 ```
+В данном проекте реализовано получение цитат:
 
-6. Реализация с RecyclerView
+1. Передача данных через LiveData:
+- В MainViewModel есть MutableLiveData<String> quoteLiveData
+- Метод loadMotivationalQuote() загружает данные и обновляет LiveData через postValue()
+- Getter getQuoteLiveData() возвращает LiveData
+2. Observer в Activity:
+- В MainActivity есть Observer<String> для цитат
+- При изменении данных обновляется TextView (tvQuote.setText())
+3. Полный поток данных:
+- API → Repository → Use Case → ViewModel (LiveData) → Activity (Observer) → TextView
+4. RecyclerView в проекте есть  для других данных:
+- rvProgressPhotos — для фото прогресса
+- rvWorkouts — для списка тренировок
+5. Адаптер:
+- Есть WorkoutAdapter и ProgressPhotoAdapter
 
-Если цитаты отображаются в списке, механизм аналогичен, но используется список LiveData.
+<img width="456" height="889" alt="image" src="https://github.com/user-attachments/assets/15000da7-72c3-4e23-89aa-69a43327a4e6" /> <img width="437" height="867" alt="image" src="https://github.com/user-attachments/assets/ee60bf7a-04d6-44ea-9b8a-0d07f7fc7639" />
 
-6.1. ViewModel для списка цитат
-   
-```
-public class QuoteViewModel extends AndroidViewModel {
-    // LiveData для списка цитат
-    private MutableLiveData<List<Quote>> quotesLiveData;
-    private GetQuotesUseCase getQuotesUseCase;
-    
-    public QuoteViewModel(@NonNull Application application) {
-        super(application);
-        quotesLiveData = new MutableLiveData<>();
-        initializeRepositories(application);
-    }
-    
-    public void loadQuotes() {
-        executorService.execute(() -> {
-            try {
-                List<Quote> quotes = getQuotesUseCase.execute();
-                quotesLiveData.postValue(quotes);
-            } catch (Exception e) {
-                quotesLiveData.postValue(new ArrayList<>());
-            }
-        });
-    }
-    
-    public LiveData<List<Quote>> getQuotesLiveData() {
-        return quotesLiveData;
-    }
-}
-```
 
-6.2. Activity с RecyclerView
-
-```
-public class QuoteListActivity extends AppCompatActivity {
-    private QuoteViewModel viewModel;
-    private RecyclerView rvQuotes;
-    private QuoteAdapter quoteAdapter;
-    
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_quote_list);
-        
-        initializeViewModel();
-        initializeRecyclerView();
-        setupLiveDataObserver();
-        loadQuotes();
-    }
-    
-    private void initializeRecyclerView() {
-        rvQuotes = findViewById(R.id.rvQuotes);
-        quoteAdapter = new QuoteAdapter(new ArrayList<>());
-        rvQuotes.setLayoutManager(new LinearLayoutManager(this));
-        rvQuotes.setAdapter(quoteAdapter);
-    }
-    
-    // Наблюдатель для списка цитат
-    private void setupLiveDataObserver() {
-        viewModel.getQuotesLiveData().observe(this, new Observer<List<Quote>>() {
-            @Override
-            public void onChanged(List<Quote> quotes) {
-                // Автоматическое обновление RecyclerView при изменении данных
-                if (quotes != null) {
-                    quoteAdapter.updateData(quotes);
-                }
-            }
-        });
-    }
-    
-    private void loadQuotes() {
-        viewModel.loadQuotes();
-    }
-}
-```
-
-6.3. Адаптер для RecyclerView
-
-```
-public class QuoteAdapter extends RecyclerView.Adapter<QuoteAdapter.QuoteViewHolder> {
-    private List<Quote> quotes;
-    
-    public QuoteAdapter(List<Quote> quotes) {
-        this.quotes = quotes != null ? quotes : new ArrayList<>();
-    }
-    
-    public void updateData(List<Quote> newQuotes) {
-        this.quotes = newQuotes != null ? newQuotes : new ArrayList<>();
-        notifyDataSetChanged(); // Уведомление об изменении данных
-    }
-    
-    @NonNull
-    @Override
-    public QuoteViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.item_quote, parent, false);
-        return new QuoteViewHolder(view);
-    }
-    
-    @Override
-    public void onBindViewHolder(@NonNull QuoteViewHolder holder, int position) {
-        Quote quote = quotes.get(position);
-        holder.bind(quote);
-    }
-    
-    @Override
-    public int getItemCount() {
-        return quotes.size();
-    }
-    
-    static class QuoteViewHolder extends RecyclerView.ViewHolder {
-        private TextView tvQuoteText;
-        private TextView tvQuoteAuthor;
-        
-        public QuoteViewHolder(@NonNull View itemView) {
-            super(itemView);
-            tvQuoteText = itemView.findViewById(R.id.tvQuoteText);
-            tvQuoteAuthor = itemView.findViewById(R.id.tvQuoteAuthor);
-        }
-        
-        public void bind(Quote quote) {
-            tvQuoteText.setText(quote.getText());
-            tvQuoteAuthor.setText(quote.getAuthor());
-        }
-    }
-}
-```
 
 Выводы
 ----------
