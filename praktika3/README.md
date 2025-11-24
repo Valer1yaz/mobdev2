@@ -13,7 +13,6 @@
 1. Создание MainViewModel. Был создан класс MainViewModel, наследующийся от ViewModel. Его задачи: хранение данных, связанных с UI, взаимодействие с use case-ами, управление состоянием через LiveData.
 
 ```
-    java
     public class MainViewModel extends ViewModel {
         private final MovieRepository movieRepository;
         private final MutableLiveData<String> favoriteMovie = new MutableLiveData<>();
@@ -50,7 +49,6 @@
 2. Реализация ViewModelFactory.
 
 ```
-    java
     public class ViewModelFactory implements ViewModelProvider.Factory {
         private final Context appContext;
 
