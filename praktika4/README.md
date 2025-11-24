@@ -60,41 +60,35 @@ public class MainActivity extends AppCompatActivity {
 Для связи данных с интерфейсом был использован ArrayAdapter. Стандартная разметка simple_list_item_2 была адаптирована путём переопределения метода getView(). В этом методе для каждого элемента списка в верхнее текстовое поле выводился его порядковый номер, а в нижнее — соответствующее название страны из массива. Настроенный таким образом адаптер был назначен для ListView, в результате чего на экране отобразился нумерованный список стран.
 
 ```
-public class MainActivity extends AppCompatActivity {
-    private ListView listViewCountries;
-
-    private String[] countries = new String[] {
-            "Австралия", "Австрия", "Аргентина", "Бангладеш", "Белорусь", "Венгрия", "Великобритания",
-            "Германия", "Гонконг", "Грузия", "Дания", "Египет", "Израиль", "Испания",
-            "Италия", "Канада", "Марокко", "Норвегия", "ОАЭ", "Португалия", "Российская Федерация",
-            "Сингапур", "Турция", "Уругвай", "Франция", "Хорватия", "Чехия", "Эквадор", "Япония"
-    };
-
-    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        listViewCountries = findViewById(R.id.listViewCountries);
 
-        ArrayAdapter<String> adapter = new ArrayAdapter<String>(
+    List<Book> books = new ArrayList<>();
+    books.add(new Book("Мари Кондо", "Магическая уборка. Японское искусство наведения порядка дома и в жизни"));
+    books.add(new Book("Фумио Сасаки", "Хорошийbye, вещи. Минимализм по-японски"));
+
+...
+
+        ListView booksListView = findViewById(R.id.books_list_view);
+        ArrayAdapter<Book> adapter = new ArrayAdapter<Book>(
                 this,
                 android.R.layout.simple_list_item_2,
                 android.R.id.text1,
-                countries
-        ) {
+                books) {
             @Override
             public View getView(int position, View convertView, ViewGroup parent) {
                 View view = super.getView(position, convertView, parent);
                 TextView text1 = view.findViewById(android.R.id.text1);
                 TextView text2 = view.findViewById(android.R.id.text2);
-
-                text2.setText(getItem(position).toString());
-                text1.setText(String.valueOf(position+1));
+                Book book = getItem(position);
+                text1.setText(book.getTitle());
+                text2.setText(book.getAuthor());
                 return view;
             }
         };
 
-        listViewCountries.setAdapter(adapter);
+        booksListView.setAdapter(adapter);
     }
 }
 ```
