@@ -226,11 +226,364 @@ public class MainActivity extends AppCompatActivity {
 *Доработка FitMotiv*
 ----------
 
-Создать в репозитории заглушки с набором данных (напр. которые
+Задание: Создать в репозитории заглушки с набором данных (напр. которые
 планируете использовать при взаимодействии с API внешнего сервиса). Передать
 эти данные в слой представления с помощью LiveData и установить в RecycleView.
 
+Реализована передача потока данных цитат от внешнего API до UI с использованием LiveData и механизма, применимого к RecyclerView.
+
+Внешний API → Repository → Use Case → ViewModel (LiveData) → Activity → UI
+
+1. Получение данных из внешнего сервиса
+
+1.1. API сервис (QuoteApiService.java)
+
+Определён интерфейс для работы с API forismatic.com:
+
+```
+public interface QuoteApiService {
+    @GET("api/1.0/")
+    Call<QuoteApiResponse> getQuote(
+            @Query("method") String method,
+            @Query("format") String format,
+            @Query("lang") String lang  // "ru" для русского языка
+    );
+}
+```
+
+1.2. Модель данных (QuoteApiResponse.java)
+```
+public class QuoteApiResponse {
+    @SerializedName("quoteText")
+    private String quoteText;
+    
+    @SerializedName("quoteAuthor")
+    private String quoteAuthor;
+    
+    // Getters и Setters
+    public String getQuoteText() { return quoteText; }
+    public String getQuoteAuthor() { 
+        return quoteAuthor != null && !quoteAuthor.isEmpty() 
+            ? quoteAuthor : "Неизвестный автор"; 
+    }
+}
+```
+
+2. Слой данных (Repository)
+
+2.1. QuoteRepositoryImpl.java
+
+Репозиторий получает данные из API и обрабатывает ошибки:
+
+```
+public class QuoteRepositoryImpl implements QuoteRepository {
+    private static final String BASE_URL = "https://api.forismatic.com/";
+    private final QuoteApiService quoteApiService;
+    private final Retrofit retrofit;
+    
+    public QuoteRepositoryImpl() {
+        // Настройка OkHttpClient с таймаутами
+        OkHttpClient okHttpClient = new OkHttpClient.Builder()
+                .connectTimeout(5, TimeUnit.SECONDS)
+                .readTimeout(10, TimeUnit.SECONDS)
+                .build();
+        
+        // Инициализация Retrofit
+        retrofit = new Retrofit.Builder()
+                .baseUrl(BASE_URL)
+                .client(okHttpClient)
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+        
+        quoteApiService = retrofit.create(QuoteApiService.class);
+    }
+
+    @Override
+    public String getMotivationalQuote() {
+        try {
+            // Получение цитаты на русском языке
+            Call<QuoteApiResponse> call = quoteApiService.getQuote("getQuote", "json", "ru");
+            Response<QuoteApiResponse> response = call.execute();
+            
+            if (response.isSuccessful() && response.body() != null) {
+                QuoteApiResponse apiResponse = response.body();
+                String quote = apiResponse.getQuoteText();
+                String author = apiResponse.getQuoteAuthor();
+                
+                if (quote != null && !quote.trim().isEmpty()) {
+                    return quote + " - " + author;
+                }
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Ошибка при получении цитаты из API", e);
+        }
+        
+        // Fallback на локальные цитаты при ошибке
+        return fallbackQuotes[new Random().nextInt(fallbackQuotes.length)];
+    }
+}
+```
+
+3. Слой домена (Use Case)
+
+3.1. GetMotivationalQuoteUseCase.java
+   
+```
+public class GetMotivationalQuoteUseCase {
+    private final QuoteRepository quoteRepository;
+
+    public GetMotivationalQuoteUseCase(QuoteRepository quoteRepository) {
+        this.quoteRepository = quoteRepository;
+    }
+
+    public String execute() {
+        return quoteRepository.getMotivationalQuote();
+    }
+}
+```
+
+4. Слой представления (ViewModel + LiveData)
+
+4.1. MainViewModel.java
+
+ViewModel использует LiveData для передачи данных в UI:
+
+```
+public class MainViewModel extends AndroidViewModel {
+    // LiveData для цитат
+    private MutableLiveData<String> quoteLiveData;
+    private ExecutorService executorService;
+    private GetMotivationalQuoteUseCase getMotivationalQuoteUseCase;
+    
+    public MainViewModel(@NonNull Application application) {
+        super(application);
+        executorService = Executors.newSingleThreadExecutor();
+        initializeRepositories(application);
+        initializeLiveData();
+    }
+    
+    private void initializeLiveData() {
+        quoteLiveData = new MutableLiveData<>();
+    }
+    
+    // Метод для загрузки цитаты
+    public void loadMotivationalQuote() {
+        executorService.execute(() -> {
+            try {
+                // Выполнение Use Case в фоновом потоке
+                String quote = getMotivationalQuoteUseCase.execute();
+                // Обновление LiveData (автоматически переключается на главный поток)
+                quoteLiveData.postValue(quote);
+            } catch (Exception e) {
+                quoteLiveData.postValue("Великие дела требуют великих усилий!");
+            }
+        });
+    }
+    
+    // Getter для LiveData
+    public LiveData<String> getQuoteLiveData() {
+        return quoteLiveData;
+    }
+}
+```
 
 
+5. Слой представления (Activity)
 
+5.1. MainActivity.java — текущая реализация (TextView)
+   
+```
+public class MainActivity extends AppCompatActivity {
+    private MainViewModel viewModel;
+    private TextView tvQuote;
+    
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        
+        initializeViewModel();
+        initializeUI();
+        setupLiveDataObservers();
+        loadInitialData();
+    }
+    
+    private void initializeViewModel() {
+        viewModel = new ViewModelProvider(this).get(MainViewModel.class);
+    }
+    
+    private void initializeUI() {
+        tvQuote = findViewById(R.id.tvQuote);
+    }
+    
+    // Настройка наблюдателя для LiveData
+    private void setupLiveDataObservers() {
+        viewModel.getQuoteLiveData().observe(this, new Observer<String>() {
+            @Override
+            public void onChanged(String quote) {
+                // Автоматически вызывается при изменении данных
+                if (quote != null && tvQuote != null) {
+                    tvQuote.setText("\"" + quote + "\"");
+                }
+            }
+        });
+    }
+    
+    private void loadInitialData() {
+        // Запрос данных через ViewModel
+        viewModel.loadMotivationalQuote();
+    }
+}
+```
 
+6. Реализация с RecyclerView
+
+Если цитаты отображаются в списке, механизм аналогичен, но используется список LiveData.
+
+6.1. ViewModel для списка цитат
+   
+```
+public class QuoteViewModel extends AndroidViewModel {
+    // LiveData для списка цитат
+    private MutableLiveData<List<Quote>> quotesLiveData;
+    private GetQuotesUseCase getQuotesUseCase;
+    
+    public QuoteViewModel(@NonNull Application application) {
+        super(application);
+        quotesLiveData = new MutableLiveData<>();
+        initializeRepositories(application);
+    }
+    
+    public void loadQuotes() {
+        executorService.execute(() -> {
+            try {
+                List<Quote> quotes = getQuotesUseCase.execute();
+                quotesLiveData.postValue(quotes);
+            } catch (Exception e) {
+                quotesLiveData.postValue(new ArrayList<>());
+            }
+        });
+    }
+    
+    public LiveData<List<Quote>> getQuotesLiveData() {
+        return quotesLiveData;
+    }
+}
+```
+
+6.2. Activity с RecyclerView
+
+```
+public class QuoteListActivity extends AppCompatActivity {
+    private QuoteViewModel viewModel;
+    private RecyclerView rvQuotes;
+    private QuoteAdapter quoteAdapter;
+    
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_quote_list);
+        
+        initializeViewModel();
+        initializeRecyclerView();
+        setupLiveDataObserver();
+        loadQuotes();
+    }
+    
+    private void initializeRecyclerView() {
+        rvQuotes = findViewById(R.id.rvQuotes);
+        quoteAdapter = new QuoteAdapter(new ArrayList<>());
+        rvQuotes.setLayoutManager(new LinearLayoutManager(this));
+        rvQuotes.setAdapter(quoteAdapter);
+    }
+    
+    // Наблюдатель для списка цитат
+    private void setupLiveDataObserver() {
+        viewModel.getQuotesLiveData().observe(this, new Observer<List<Quote>>() {
+            @Override
+            public void onChanged(List<Quote> quotes) {
+                // Автоматическое обновление RecyclerView при изменении данных
+                if (quotes != null) {
+                    quoteAdapter.updateData(quotes);
+                }
+            }
+        });
+    }
+    
+    private void loadQuotes() {
+        viewModel.loadQuotes();
+    }
+}
+```
+
+6.3. Адаптер для RecyclerView
+
+```
+public class QuoteAdapter extends RecyclerView.Adapter<QuoteAdapter.QuoteViewHolder> {
+    private List<Quote> quotes;
+    
+    public QuoteAdapter(List<Quote> quotes) {
+        this.quotes = quotes != null ? quotes : new ArrayList<>();
+    }
+    
+    public void updateData(List<Quote> newQuotes) {
+        this.quotes = newQuotes != null ? newQuotes : new ArrayList<>();
+        notifyDataSetChanged(); // Уведомление об изменении данных
+    }
+    
+    @NonNull
+    @Override
+    public QuoteViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        View view = LayoutInflater.from(parent.getContext())
+                .inflate(R.layout.item_quote, parent, false);
+        return new QuoteViewHolder(view);
+    }
+    
+    @Override
+    public void onBindViewHolder(@NonNull QuoteViewHolder holder, int position) {
+        Quote quote = quotes.get(position);
+        holder.bind(quote);
+    }
+    
+    @Override
+    public int getItemCount() {
+        return quotes.size();
+    }
+    
+    static class QuoteViewHolder extends RecyclerView.ViewHolder {
+        private TextView tvQuoteText;
+        private TextView tvQuoteAuthor;
+        
+        public QuoteViewHolder(@NonNull View itemView) {
+            super(itemView);
+            tvQuoteText = itemView.findViewById(R.id.tvQuoteText);
+            tvQuoteAuthor = itemView.findViewById(R.id.tvQuoteAuthor);
+        }
+        
+        public void bind(Quote quote) {
+            tvQuoteText.setText(quote.getText());
+            tvQuoteAuthor.setText(quote.getAuthor());
+        }
+    }
+}
+```
+
+Выводы
+----------
+
+- Данные цитат получаются из внешнего API через Retrofit
+- Repository обрабатывает запросы и ошибки
+- Use Case инкапсулирует бизнес-логику
+- ViewModel использует LiveData для передачи данных
+- Activity подписывается на LiveData через Observer
+- UI обновляется автоматически при изменении данных
+
+ Механизм одинаков для TextView и RecyclerView: LiveData уведомляет наблюдателя, который обновляет UI. Для RecyclerView обновляется адаптер, который перерисовывает список.
+
+*Преимущества использования LiveData:*
+
+- Реактивность: UI обновляется при изменении данных
+- Управление жизненным циклом: подписка активна только при наличии активного наблюдателя
+- Безопасность потоков: postValue() можно вызывать из любого потока
+- Отсутствие утечек памяти: автоматическая отписка при уничтожении Activity
+- Сохранение состояния: данные сохраняются при повороте экрана
