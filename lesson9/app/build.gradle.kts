@@ -6,6 +6,7 @@ android {
     namespace = "ru.mirea.zhemaytisvs.lesson9"
     compileSdk = 35
 
+
     defaultConfig {
         applicationId = "ru.mirea.zhemaytisvs.lesson9"
         minSdk = 26
@@ -32,6 +33,9 @@ android {
 }
 
 dependencies {
+
+    implementation(project(":data"))
+    implementation(project(":domain"))
 
     implementation(libs.appcompat)
     implementation(libs.material)
