@@ -8,6 +8,10 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
+import com.bumptech.glide.request.RequestOptions;
+
 import ru.mirea.zhemaytisvs.fitmotiv.R;
 import ru.mirea.zhemaytisvs.fitmotiv.domain.entities.ProgressPhoto;
 
@@ -63,8 +67,21 @@ public class ProgressPhotoAdapter extends RecyclerView.Adapter<ProgressPhotoAdap
         }
 
         public void bind(ProgressPhoto photo) {
-            // Используем стандартные иконки Android вместо кастомных
-            ivPhoto.setImageResource(android.R.drawable.ic_menu_gallery);
+            // Используем Glide для оптимизированной загрузки изображений
+            // Если imageUrl пустой или null, используем placeholder
+            if (photo.getImageUrl() != null && !photo.getImageUrl().isEmpty()) {
+                Glide.with(itemView.getContext())
+                        .load(photo.getImageUrl())
+                        .apply(new RequestOptions()
+                                .diskCacheStrategy(DiskCacheStrategy.ALL)
+                                .centerCrop()
+                                .placeholder(android.R.drawable.ic_menu_gallery)
+                                .error(android.R.drawable.ic_menu_gallery))
+                        .into(ivPhoto);
+            } else {
+                // Используем стандартную иконку, если URL отсутствует
+                ivPhoto.setImageResource(android.R.drawable.ic_menu_gallery);
+            }
 
             tvDescription.setText(photo.getDescription());
             tvDate.setText(new SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(photo.getDate()));

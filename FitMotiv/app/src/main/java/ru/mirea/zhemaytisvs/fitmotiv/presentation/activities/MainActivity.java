@@ -8,27 +8,20 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import ru.mirea.zhemaytisvs.fitmotiv.R;
+import ru.mirea.zhemaytisvs.fitmotiv.domain.entities.ExerciseAnalysis;
 import ru.mirea.zhemaytisvs.fitmotiv.domain.entities.ProgressPhoto;
 import ru.mirea.zhemaytisvs.fitmotiv.domain.entities.User;
 import ru.mirea.zhemaytisvs.fitmotiv.domain.entities.UserGoal;
 import ru.mirea.zhemaytisvs.fitmotiv.domain.entities.Workout;
-import ru.mirea.zhemaytisvs.fitmotiv.domain.repositories.ProgressRepository;
-import ru.mirea.zhemaytisvs.fitmotiv.domain.repositories.QuoteRepository;
-import ru.mirea.zhemaytisvs.fitmotiv.domain.repositories.UserRepository;
-import ru.mirea.zhemaytisvs.fitmotiv.domain.repositories.WorkoutRepository;
-import ru.mirea.zhemaytisvs.fitmotiv.domain.repositories.AuthRepository; // ДОБАВЛЕНО
-import ru.mirea.zhemaytisvs.fitmotiv.domain.usercases.*;
-import ru.mirea.zhemaytisvs.fitmotiv.data.repositories.*;
-
-// ИМПОРТЫ ДЛЯ АУТЕНТИФИКАЦИИ
+import ru.mirea.zhemaytisvs.fitmotiv.domain.repositories.AuthRepository;
+import ru.mirea.zhemaytisvs.fitmotiv.presentation.viewmodels.MainViewModel;
 import ru.mirea.zhemaytisvs.fitmotiv.data.repositories.AuthRepositoryImpl;
-import ru.mirea.zhemaytisvs.fitmotiv.domain.usercases.GetCurrentUserUseCase;
-import ru.mirea.zhemaytisvs.fitmotiv.data.storage.sharedprefs.SharedPrefStorage;
-import ru.mirea.zhemaytisvs.fitmotiv.data.storage.sharedprefs.SharedPrefStorageImpl;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -36,53 +29,54 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
-    // Use Cases
-    private TrackWorkoutUseCase trackWorkoutUseCase;
-    private GetWorkoutHistoryUseCase getWorkoutHistoryUseCase;
-    private GetMotivationalQuoteUseCase getMotivationalQuoteUseCase;
-    private SetGoalUseCase setGoalUseCase;
-    private GetProgressPhotosUseCase getProgressPhotosUseCase;
-    private AnalyzeExerciseUseCase analyzeExerciseUseCase;
-
-    // ДОБАВЛЕНО: Use Case для аутентификации
-    private GetCurrentUserUseCase getCurrentUserUseCase;
+    // ViewModel для взаимодействия со слоем domain
+    private MainViewModel viewModel;
 
     // UI Components
     private TextView tvQuote;
     private TextView tvWorkoutCount;
     private TextView tvGoalInfo;
-    private TextView tvUserInfo; // ДОБАВЛЕНО: для отображения информации о пользователе
+    private TextView tvUserInfo;
     private RecyclerView rvProgressPhotos;
     private ProgressPhotoAdapter progressPhotoAdapter;
     private Button btnAddWorkout;
+    private Button btnViewWorkouts;
     private Button btnGetQuote;
     private Button btnSetGoal;
     private Button btnAnalyzeExercise;
-    private Button btnLogout; // ДОБАВЛЕНО: кнопка выхода
+    private Button btnLogout;
 
-    // ДОБАВЛЕНО: Текущий пользователь
+    // Текущий пользователь
     private User currentUser;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // ПЕРВОЕ: Получаем пользователя из Intent или проверяем аутентификацию
-        initializeUser();
-
         setContentView(R.layout.activity_main);
 
-        // ВТОРОЕ: Инициализация репозиториев и UI
-        initializeRepositories();
+        // ПЕРВОЕ: Инициализация ViewModel (должна быть до использования)
+        initializeViewModel();
+
+        // ВТОРОЕ: Получаем пользователя из Intent или проверяем аутентификацию
+        initializeUser();
+
+        // ТРЕТЬЕ: Инициализация UI и наблюдателей
         initializeUI();
+        setupLiveDataObservers();
         loadInitialData();
         setupEventListeners();
 
-        // ТРЕТЬЕ: Настройка режима пользователя
+        // ЧЕТВЕРТОЕ: Настройка режима пользователя
         setupUserMode();
     }
 
-    // ИСПРАВЛЕННЫЙ МЕТОД: Инициализация пользователя
+    // Инициализация ViewModel
+    private void initializeViewModel() {
+        viewModel = new ViewModelProvider(this).get(MainViewModel.class);
+    }
+
+    // Инициализация пользователя
     private void initializeUser() {
         // Получаем пользователя из Intent (из LoginActivity)
         Intent intent = getIntent();
@@ -93,10 +87,8 @@ public class MainActivity extends AppCompatActivity {
             if (isGuest) {
                 currentUser = User.createGuestUser();
             } else {
-                // Для зарегистрированных пользователей получаем из репозитория
-                AuthRepository authRepository = new AuthRepositoryImpl();
-                GetCurrentUserUseCase getCurrentUserUseCase = new GetCurrentUserUseCase(authRepository);
-                currentUser = getCurrentUserUseCase.execute();
+                // Для зарегистрированных пользователей загружаем через ViewModel
+                viewModel.loadCurrentUser();
             }
         } else {
             // Если Intent пустой, проверяем аутентификацию
@@ -104,18 +96,24 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    // ИСПРАВЛЕННЫЙ МЕТОД: Проверка аутентификации
+    // Проверка аутентификации
     private void checkUserAuthentication() {
-        AuthRepository authRepository = new AuthRepositoryImpl();
-        GetCurrentUserUseCase getCurrentUserUseCase = new GetCurrentUserUseCase(authRepository);
-        currentUser = getCurrentUserUseCase.execute();
-
-        if (currentUser == null) {
-            // Если пользователь не авторизован, переходим на экран логина
-            startActivity(new Intent(this, LoginActivity.class));
-            finish();
-            return;
-        }
+        viewModel.loadCurrentUser();
+        
+        // Наблюдаем за пользователем через LiveData
+        viewModel.getCurrentUserLiveData().observe(this, new Observer<User>() {
+            @Override
+            public void onChanged(User user) {
+                if (user == null) {
+                    // Если пользователь не авторизован, переходим на экран логина
+                    startActivity(new Intent(MainActivity.this, LoginActivity.class));
+                    finish();
+                } else {
+                    currentUser = user;
+                    setupUserMode();
+                }
+            }
+        });
     }
 
     // ИСПРАВЛЕННЫЙ МЕТОД: Настройка режима пользователя
@@ -194,21 +192,85 @@ public class MainActivity extends AppCompatActivity {
                 Toast.LENGTH_SHORT).show();
     }
 
-    private void initializeRepositories() {
-        // Инициализация storage и репозиториев
-        SharedPrefStorage sharedPrefStorage = new SharedPrefStorageImpl(this);
-        WorkoutRepository workoutRepository = new WorkoutRepositoryImpl(sharedPrefStorage);
-        QuoteRepository quoteRepository = new QuoteRepositoryImpl();
-        UserRepository userRepository = new UserRepositoryImpl();
-        ProgressRepository progressRepository = new ProgressRepositoryImpl();
+    // Настройка наблюдателей для LiveData
+    private void setupLiveDataObservers() {
+        // Наблюдатель для цитат
+        viewModel.getQuoteLiveData().observe(this, new Observer<String>() {
+            @Override
+            public void onChanged(String quote) {
+                if (quote != null && tvQuote != null) {
+                    tvQuote.setText("\"" + quote + "\"");
+                }
+            }
+        });
 
-        // Инициализация Use Cases
-        trackWorkoutUseCase = new TrackWorkoutUseCase(workoutRepository);
-        getWorkoutHistoryUseCase = new GetWorkoutHistoryUseCase(workoutRepository);
-        getMotivationalQuoteUseCase = new GetMotivationalQuoteUseCase(quoteRepository);
-        setGoalUseCase = new SetGoalUseCase(userRepository);
-        getProgressPhotosUseCase = new GetProgressPhotosUseCase(progressRepository);
-        analyzeExerciseUseCase = new AnalyzeExerciseUseCase(workoutRepository);
+        // Наблюдатель для статистики тренировок
+        viewModel.getWorkoutStatisticsLiveData().observe(this, new Observer<MainViewModel.WorkoutStatistics>() {
+            @Override
+            public void onChanged(MainViewModel.WorkoutStatistics stats) {
+                if (stats != null && tvWorkoutCount != null) {
+                    String statsText = String.format("Тренировок: %d\nСожжено калорий: %d", 
+                            stats.getTotalWorkouts(), stats.getTotalCalories());
+                    tvWorkoutCount.setText(statsText);
+                }
+            }
+        });
+
+        // Наблюдатель для целей
+        viewModel.getGoalLiveData().observe(this, new Observer<UserGoal>() {
+            @Override
+            public void onChanged(UserGoal goal) {
+                if (goal != null && tvGoalInfo != null) {
+                    String goalInfo = String.format("Цель: %s\nТренировок в неделю: %d",
+                            goal.getDescription(), goal.getWorkoutsPerWeek());
+                    tvGoalInfo.setText(goalInfo);
+                } else if (tvGoalInfo != null) {
+                    tvGoalInfo.setText("Цель не установлена");
+                }
+            }
+        });
+
+        // Наблюдатель для фото прогресса
+        viewModel.getProgressPhotosLiveData().observe(this, new Observer<List<ProgressPhoto>>() {
+            @Override
+            public void onChanged(List<ProgressPhoto> photos) {
+                if (photos != null && progressPhotoAdapter != null) {
+                    progressPhotoAdapter.updateData(photos);
+                }
+            }
+        });
+
+        // Наблюдатель для пользователя
+        viewModel.getCurrentUserLiveData().observe(this, new Observer<User>() {
+            @Override
+            public void onChanged(User user) {
+                if (user != null) {
+                    currentUser = user;
+                    if (tvUserInfo != null) {
+                        String userInfo = user.isGuest() ?
+                                "Гостевой режим" :
+                                "Пользователь: " + (user.getDisplayName() != null ? user.getDisplayName() : user.getEmail());
+                        tvUserInfo.setText(userInfo);
+                    }
+                }
+            }
+        });
+
+        // Наблюдатель для анализа упражнений
+        viewModel.getExerciseAnalysisLiveData().observe(this, new Observer<ExerciseAnalysis>() {
+            @Override
+            public void onChanged(ExerciseAnalysis analysis) {
+                if (analysis != null) {
+                    String result = String.format(
+                            "Упражнение: %s\nОценка: %.1f%%\n%s",
+                            analysis.getExerciseName(),
+                            analysis.getCorrectnessScore(),
+                            analysis.getFeedback()
+                    );
+                    showToast("Анализ завершен:\n" + result);
+                }
+            }
+        });
     }
 
     private void initializeUI() {
@@ -219,10 +281,11 @@ public class MainActivity extends AppCompatActivity {
         tvUserInfo = findViewById(R.id.tvUserInfo); // ДОБАВЛЕНО
         rvProgressPhotos = findViewById(R.id.rvProgressPhotos);
         btnAddWorkout = findViewById(R.id.btnAddWorkout);
+        btnViewWorkouts = findViewById(R.id.btnViewWorkouts);
         btnGetQuote = findViewById(R.id.btnGetQuote);
         btnSetGoal = findViewById(R.id.btnSetGoal);
         btnAnalyzeExercise = findViewById(R.id.btnAnalyzeExercise);
-        btnLogout = findViewById(R.id.btnLogout); // ДОБАВЛЕНО
+        btnLogout = findViewById(R.id.btnLogout);
 
         // Настраиваем RecyclerView для фото прогресса
         progressPhotoAdapter = new ProgressPhotoAdapter(new ArrayList<>());
@@ -231,17 +294,21 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void loadInitialData() {
-        // Загружаем мотивационную цитату при старте
-        loadMotivationalQuote();
-
-        // Загружаем статистику тренировок
-        loadWorkoutStatistics();
-
-        // Загружаем фото прогресса
-        loadProgressPhotos();
-
-        // Загружаем информацию о целях
-        loadGoalInfo();
+        // Оптимизированная загрузка: сначала критичные данные, затем остальные
+        // Загружаем пользователя в первую очередь (если нужно)
+        if (currentUser == null) {
+            viewModel.loadCurrentUser();
+        }
+        
+        // Загружаем цитату (быстрая операция)
+        viewModel.loadMotivationalQuote();
+        
+        // Загружаем тренировки (может быть долго из-за сети)
+        viewModel.loadWorkouts();
+        
+        // Ленивая загрузка остальных данных (можно загружать по требованию)
+        // viewModel.loadProgressPhotos();
+        // viewModel.loadGoal();
     }
 
     private void setupEventListeners() {
@@ -253,11 +320,20 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        // Кнопка просмотра всех тренировок
+        btnViewWorkouts.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(MainActivity.this, WorkoutListActivity.class);
+                startActivity(intent);
+            }
+        });
+
         // Кнопка получения новой цитаты
         btnGetQuote.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                loadMotivationalQuote();
+                viewModel.loadMotivationalQuote();
             }
         });
 
@@ -298,124 +374,43 @@ public class MainActivity extends AppCompatActivity {
         finish();
     }
 
-    // Остальные методы без изменений...
-    private void loadMotivationalQuote() {
-        try {
-            String quote = getMotivationalQuoteUseCase.execute();
-            tvQuote.setText("\"" + quote + "\"");
-        } catch (Exception e) {
-            tvQuote.setText("Великие дела требуют великих усилий!");
-            showToast("Ошибка загрузки цитаты");
-        }
-    }
-
-    private void loadWorkoutStatistics() {
-        try {
-            List<Workout> workouts = getWorkoutHistoryUseCase.execute();
-            int totalWorkouts = workouts.size();
-            int totalCalories = 0;
-
-            for (Workout workout : workouts) {
-                totalCalories += workout.getCalories();
-            }
-
-            String stats = String.format("Тренировок: %d\nСожжено калорий: %d", totalWorkouts, totalCalories);
-            tvWorkoutCount.setText(stats);
-        } catch (Exception e) {
-            tvWorkoutCount.setText("Тренировок: 0\nСожжено калорий: 0");
-            showToast("Ошибка загрузки статистики");
-        }
-    }
-
-    private void loadProgressPhotos() {
-        try {
-            List<ProgressPhoto> photos = getProgressPhotosUseCase.execute();
-            progressPhotoAdapter.updateData(photos);
-        } catch (Exception e) {
-            showToast("Ошибка загрузки фото прогресса");
-        }
-    }
-
-    private void loadGoalInfo() {
-        try {
-            // Для демонстрации создаем тестовую цель
-            UserGoal goal = new UserGoal("1", 75, 4, "Похудеть на 5 кг за месяц", false);
-            setGoalUseCase.execute(goal);
-
-            String goalInfo = String.format("Цель: %s\nТренировок в неделю: %d",
-                    goal.getDescription(), goal.getWorkoutsPerWeek());
-            tvGoalInfo.setText(goalInfo);
-        } catch (Exception e) {
-            tvGoalInfo.setText("Цель не установлена");
-            showToast("Ошибка загрузки целей");
-        }
-    }
-
     private void addNewWorkout() {
-        try {
-            // Создаем новую тестовую тренировку
-            Workout newWorkout = new Workout(
-                    String.valueOf(System.currentTimeMillis()),
-                    Workout.WorkoutType.STRENGTH,
-                    60, // длительность в минутах
-                    450, // калории
-                    new Date(),
-                    "Силовая тренировка с штангой"
-            );
+        // Создаем новую тестовую тренировку
+        Workout newWorkout = new Workout(
+                String.valueOf(System.currentTimeMillis()),
+                Workout.WorkoutType.STRENGTH,
+                60, // длительность в минутах
+                450, // калории
+                new Date(),
+                "Силовая тренировка с штангой"
+        );
 
-            trackWorkoutUseCase.execute(newWorkout);
-            showToast("Тренировка добавлена!");
-
-            // Обновляем статистику
-            loadWorkoutStatistics();
-
-        } catch (Exception e) {
-            showToast("Ошибка добавления тренировки");
-        }
+        // Добавляем тренировку через ViewModel
+        viewModel.addWorkout(newWorkout);
+        showToast("Тренировка добавлена!");
     }
 
     private void setNewGoal() {
-        try {
-            // Создаем новую цель
-            UserGoal newGoal = new UserGoal(
-                    String.valueOf(System.currentTimeMillis()),
-                    70, // целевой вес
-                    5,  // тренировок в неделю
-                    "Набрать мышечную массу",
-                    false
-            );
+        // Создаем новую цель
+        UserGoal newGoal = new UserGoal(
+                String.valueOf(System.currentTimeMillis()),
+                70, // целевой вес
+                5,  // тренировок в неделю
+                "Набрать мышечную массу",
+                false
+        );
 
-            setGoalUseCase.execute(newGoal);
-            showToast("Новая цель установлена!");
-
-            // Обновляем отображение цели
-            loadGoalInfo();
-
-        } catch (Exception e) {
-            showToast("Ошибка установки цели");
-        }
+        // Устанавливаем цель через ViewModel
+        viewModel.setGoal(newGoal);
+        showToast("Новая цель установлена!");
     }
 
     private void analyzeExercise() {
-        try {
-            // Имитируем данные изображения для анализа
-            byte[] mockImageData = new byte[1024];
+        // Имитируем данные изображения для анализа
+        byte[] mockImageData = new byte[1024];
 
-            // Анализируем упражнение
-            var analysis = analyzeExerciseUseCase.execute("Приседания", mockImageData);
-
-            String result = String.format(
-                    "Упражнение: %s\nОценка: %.1f%%\n%s",
-                    analysis.getExerciseName(),
-                    analysis.getCorrectnessScore(),
-                    analysis.getFeedback()
-            );
-
-            showToast("Анализ завершен:\n" + result);
-
-        } catch (Exception e) {
-            showToast("Ошибка анализа упражнения");
-        }
+        // Анализируем упражнение через ViewModel
+        viewModel.analyzeExercise("Приседания", mockImageData);
     }
 
     private void showToast(String message) {

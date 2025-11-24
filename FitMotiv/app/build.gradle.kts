@@ -51,4 +51,12 @@ dependencies {
     implementation("com.google.firebase:firebase-auth:22.1.2")
     implementation("com.google.android.gms:play-services-auth:20.7.0")
     implementation("com.google.android.material:material:1.9.0")
+    
+    // ViewModel & LiveData
+    implementation(libs.lifecycle.viewmodel)
+    implementation(libs.lifecycle.livedata)
+    implementation(libs.lifecycle.runtime)
+    
+    // Glide для загрузки изображений
+    implementation("com.github.bumptech.glide:glide:4.16.0")
 }
