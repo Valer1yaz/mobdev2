@@ -99,6 +99,9 @@ public class MainActivity extends AppCompatActivity {
 }
 ```
 
+<img width="1818" height="950" alt="image" src="https://github.com/user-attachments/assets/5799b9f2-3d7b-4f7d-8dca-a0315eaf08ab" />
+
+
 -----------
 3 RecyclerView
 -----------
