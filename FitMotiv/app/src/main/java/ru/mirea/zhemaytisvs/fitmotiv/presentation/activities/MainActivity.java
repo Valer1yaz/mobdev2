@@ -2,6 +2,7 @@ package ru.mirea.zhemaytisvs.fitmotiv.presentation.activities;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
@@ -66,31 +67,47 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // ДОБАВЛЕНО: Проверяем аутентификацию пользователя
-        checkUserAuthentication();
+        // ПЕРВОЕ: Получаем пользователя из Intent или проверяем аутентификацию
+        initializeUser();
 
         setContentView(R.layout.activity_main);
 
-        // Инициализация репозиториев
+        // ВТОРОЕ: Инициализация репозиториев и UI
         initializeRepositories();
-
-        // Инициализация UI
         initializeUI();
-
-        // Загрузка начальных данных
         loadInitialData();
-
-        // Настройка обработчиков событий
         setupEventListeners();
 
-        // ДОБАВЛЕНО: Настройка режима в зависимости от типа пользователя
+        // ТРЕТЬЕ: Настройка режима пользователя
         setupUserMode();
     }
 
-    // ДОБАВЛЕННЫЙ МЕТОД: Проверка аутентификации
+    // ИСПРАВЛЕННЫЙ МЕТОД: Инициализация пользователя
+    private void initializeUser() {
+        // Получаем пользователя из Intent (из LoginActivity)
+        Intent intent = getIntent();
+        if (intent != null && intent.hasExtra("isGuest")) {
+            boolean isGuest = intent.getBooleanExtra("isGuest", false);
+            String userId = intent.getStringExtra("user");
+
+            if (isGuest) {
+                currentUser = User.createGuestUser();
+            } else {
+                // Для зарегистрированных пользователей получаем из репозитория
+                AuthRepository authRepository = new AuthRepositoryImpl();
+                GetCurrentUserUseCase getCurrentUserUseCase = new GetCurrentUserUseCase(authRepository);
+                currentUser = getCurrentUserUseCase.execute();
+            }
+        } else {
+            // Если Intent пустой, проверяем аутентификацию
+            checkUserAuthentication();
+        }
+    }
+
+    // ИСПРАВЛЕННЫЙ МЕТОД: Проверка аутентификации
     private void checkUserAuthentication() {
         AuthRepository authRepository = new AuthRepositoryImpl();
-        getCurrentUserUseCase = new GetCurrentUserUseCase(authRepository);
+        GetCurrentUserUseCase getCurrentUserUseCase = new GetCurrentUserUseCase(authRepository);
         currentUser = getCurrentUserUseCase.execute();
 
         if (currentUser == null) {
@@ -101,8 +118,14 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    // ДОБАВЛЕННЫЙ МЕТОД: Настройка режима пользователя
+    // ИСПРАВЛЕННЫЙ МЕТОД: Настройка режима пользователя
     private void setupUserMode() {
+        // ДОБАВЛЕНА ПРОВЕРКА НА NULL
+        if (currentUser == null) {
+            Log.e("MainActivity", "Current user is null in setupUserMode");
+            return;
+        }
+
         if (currentUser.isGuest()) {
             setupGuestMode();
         } else {
@@ -117,6 +140,7 @@ public class MainActivity extends AppCompatActivity {
             tvUserInfo.setText(userInfo);
         }
     }
+
 
     // ДОБАВЛЕННЫЙ МЕТОД: Настройка гостевого режима
     private void setupGuestMode() {

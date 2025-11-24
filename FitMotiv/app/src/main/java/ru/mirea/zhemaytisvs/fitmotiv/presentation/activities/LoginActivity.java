@@ -178,6 +178,8 @@ public class LoginActivity extends AppCompatActivity {
         Intent intent = new Intent(this, MainActivity.class);
         intent.putExtra("user", user.getUid());
         intent.putExtra("isGuest", user.isGuest());
+        intent.putExtra("userEmail", user.getEmail());
+        intent.putExtra("userDisplayName", user.getDisplayName());
         startActivity(intent);
         finish();
     }
