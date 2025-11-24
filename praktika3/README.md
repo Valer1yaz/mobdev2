@@ -130,6 +130,7 @@
 
 -----------
 **Контрольное задание**
+-----------
 
 В проекте финтесмотивация требуется:
 1. Переписать MainActivity для использования ViewModel и LiveData;
@@ -142,3 +143,182 @@
 - Для мотивационной цитаты использовать MediatorLiveData, которая будет объединять данные из сети и БД (если в БД есть сохраненная цитата, то показываем ее, а затем обновляем из сети);
 - Реализовать Room для хранения данных (например, цитат или тренировок) и использовать вместе с сетевым источником;
 - Для пункта 7 (распознавание изображений) можно добавить использование TensorFlow Lite для анализа упражнений (уже есть пустышка UseCase для анализа).
+
+-----------
+1 Взаимодействие Activity со слоем domain через ViewModel
+-----------   
+
+Создан MainViewModel, который инкапсулирует взаимодействие со слоем domain:
+```
+public class MainViewModel extends AndroidViewModel {
+    // Use Cases для взаимодействия со слоем domain
+    private TrackWorkoutUseCase trackWorkoutUseCase;
+    private GetWorkoutHistoryUseCase getWorkoutHistoryUseCase;
+    private GetMotivationalQuoteUseCase getMotivationalQuoteUseCase;
+    // ... другие Use Cases
+}
+```
+
+Изменения в MainActivity
+
+До рефакторинга MainActivity напрямую создавала Use Cases, Прямые вызовы методов репозиториев, Бизнес-логика смешана с UI-логикой.
+После рефакторинга MainActivity использует только ViewModel, Все взаимодействие со слоем domain через ViewModel, UI-логика отделена от бизнес-логики.
+
+Пример использования:
+```
+// MainActivity
+private void initializeViewModel() {
+    viewModel = new ViewModelProvider(this).get(MainViewModel.class);
+}
+
+// Загрузка данных через ViewModel
+viewModel.loadMotivationalQuote();
+viewModel.loadWorkouts();
+viewModel.addWorkout(newWorkout);
+```
+Результат - MainActivity не знает о Use Cases и репозиториях, Вся бизнес-логика в ViewModel, Соблюдена чистая архитектура
+
+-----------
+2 Обновление состояния интерфейса через LiveData
+-----------
+
+В MainViewModel созданы LiveData для всех данных:
+```
+// LiveData для различных типов данных
+private MutableLiveData<String> quoteLiveData;
+private MediatorLiveData<List<Workout>> workoutsMediatorLiveData;
+private MutableLiveData<UserGoal> goalLiveData;
+private MutableLiveData<List<ProgressPhoto>> progressPhotosLiveData;
+private MutableLiveData<User> currentUserLiveData;
+private MutableLiveData<WorkoutStatistics> workoutStatisticsLiveData;
+```
+
+Наблюдатели в MainActivity
+Настроены Observer'ы для реактивного обновления UI:
+```
+private void setupLiveDataObservers() {
+    // Наблюдатель для цитат
+    viewModel.getQuoteLiveData().observe(this, new Observer<String>() {
+        @Override
+        public void onChanged(String quote) {
+            if (quote != null && tvQuote != null) {
+                tvQuote.setText("\"" + quote + "\"");
+            }
+        }
+    });
+
+    // Наблюдатель для статистики тренировок
+    viewModel.getWorkoutStatisticsLiveData().observe(this, 
+        new Observer<MainViewModel.WorkoutStatistics>() {
+            @Override
+            public void onChanged(MainViewModel.WorkoutStatistics stats) {
+                if (stats != null && tvWorkoutCount != null) {
+                    String statsText = String.format("Тренировок: %d\nСожжено калорий: %d", 
+                            stats.getTotalWorkouts(), stats.getTotalCalories());
+                    tvWorkoutCount.setText(statsText);
+                }
+            }
+        });
+    // ... другие наблюдатели
+}
+```
+Преимущества - Автоматическое обновление UI при изменении данных, Нет необходимости вручную обновлять UI, Корректная обработка жизненного цикла Activity, Данные сохраняются при повороте экрана
+
+-----------
+3 Использование MediatorLiveData для объединения данных из сети и БД
+-----------
+
+Создан MediatorLiveData для объединения данных из двух источников:
+```
+// MediatorLiveData для тренировок
+private MediatorLiveData<List<Workout>> workoutsMediatorLiveData;
+private MutableLiveData<List<Workout>> workoutsFromDbLiveData;
+private MutableLiveData<List<Workout>> workoutsFromNetworkLiveData;
+
+private void setupWorkoutsMediator() {
+    // MediatorLiveData объединяет данные из БД и сети
+    workoutsMediatorLiveData.addSource(workoutsFromDbLiveData, dbWorkouts -> {
+        combineWorkouts();
+    });
+    
+    workoutsMediatorLiveData.addSource(workoutsFromNetworkLiveData, networkWorkouts -> {
+        combineWorkouts();
+    });
+}
+```
+
+Логика объединения данных
+```
+private void combineWorkouts() {
+    List<Workout> dbWorkouts = workoutsFromDbLiveData.getValue();
+    List<Workout> networkWorkouts = workoutsFromNetworkLiveData.getValue();
+    
+    if (dbWorkouts == null) dbWorkouts = new ArrayList<>();
+    if (networkWorkouts == null) networkWorkouts = new ArrayList<>();
+    
+    // Объединяем тренировки, избегая дубликатов по ID
+    List<Workout> combinedWorkouts = new ArrayList<>(dbWorkouts);
+    
+    for (Workout networkWorkout : networkWorkouts) {
+        boolean exists = false;
+        for (Workout dbWorkout : combinedWorkouts) {
+            if (dbWorkout.getId().equals(networkWorkout.getId())) {
+                exists = true;
+                break;
+            }
+        }
+        if (!exists) {
+            combinedWorkouts.add(networkWorkout);
+        }
+    }
+    
+    workoutsMediatorLiveData.setValue(combinedWorkouts);
+    updateWorkoutStatistics(combinedWorkouts);
+}
+```
+
+Загрузка данных
+```
+public void loadWorkouts() {
+    // Оптимизация: сначала загружаем из БД (быстро), затем из сети (медленно)
+    executorService.execute(() -> {
+        try {
+            List<Workout> workouts = getWorkoutHistoryUseCase.execute();
+            workoutsFromDbLiveData.postValue(workouts);
+        } catch (Exception e) {
+            workoutsFromDbLiveData.postValue(new ArrayList<>());
+        }
+    });
+    
+    // Загружаем тренировки из сети в фоне (не блокирует UI)
+    executorService.execute(() -> {
+        try {
+            List<WorkoutResponse> networkWorkouts = networkApi.getWorkoutsFromCloud();
+            List<Workout> domainWorkouts = convertToDomainWorkouts(networkWorkouts);
+            workoutsFromNetworkLiveData.postValue(domainWorkouts);
+        } catch (Exception e) {
+            workoutsFromNetworkLiveData.postValue(new ArrayList<>());
+        }
+    });
+}
+```
+Результат - Данные из БД и сети объединяются автоматически, Устранение дубликатов по ID, UI обновляется при изменении любого источника, Быстрая загрузка из БД, затем синхронизация с сетью.
+
+-----------
+Дополнительные доработки:
+-----------
+1. Реальный API для получения данных (JSON)
+-Интегрирован API forismatic.com для цитат на русском языке
+-Использован Retrofit для работы с API
+-Реализован fallback на локальные данные при ошибках
+2. Room Database
+-Миграция с SharedPrefs на Room Database
+-Созданы Entity, DAO и Database классы
+-Асинхронная работа с БД
+
+-----------------
+Выводы
+-----------------
+MainActivity взаимодействует со слоем domain только через ViewModel
+Состояние интерфейса обновляется реактивно через LiveData
+MediatorLiveData объединяет данные из БД и сети без дубликато
