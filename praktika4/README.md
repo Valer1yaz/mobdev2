@@ -21,34 +21,27 @@
 ```
 public class MainActivity extends AppCompatActivity {
 
-    private LinearLayout wrapper;
-    private ScrollView scrollView;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        wrapper = findViewById(R.id.wrapper);
-        scrollView = findViewById(R.id.scrollView);
+        LinearLayout wrapper = findViewById(R.id.wrapper);
+        BigDecimal firstTerm = BigDecimal.ONE;
+        BigDecimal ratio = new BigDecimal("2");
 
-        BigInteger value = BigInteger.ONE;
         for (int i = 1; i <= 100; i++) {
-            value = value.shiftLeft(1);
-
+            BigDecimal term = firstTerm.multiply(ratio.pow(i - 1));
             View view = getLayoutInflater().inflate(R.layout.item, null, false);
-
             TextView text = view.findViewById(R.id.textView);
-            text.setText(String.format("Элемент %d: %s", i, value.toString()));
-
-            ImageView img = view.findViewById(R.id.imageView);
-            img.setImageResource(android.R.drawable.ic_dialog_info);
-
+            text.setText(String.format("Элемент %d: %s", i, term.toString()));
             wrapper.addView(view);
         }
     }
 }
 ```
+
+<img width="1817" height="958" alt="image" src="https://github.com/user-attachments/assets/e126f85c-f4f2-4bc3-bfcd-7da9f3d241bf" />
 
 
 -----------
