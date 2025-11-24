@@ -304,12 +304,19 @@ public void loadWorkouts() {
 -----------
 
 1. Реальный API для получения данных (JSON)
+
 -Интегрирован API forismatic.com для цитат на русском языке
+
 -Использован Retrofit для работы с API
+
 -Реализован fallback на локальные данные при ошибках
+
 2. Room Database
+
 -Миграция с SharedPrefs на Room Database
+
 -Созданы Entity, DAO и Database классы
+
 -Асинхронная работа с БД
 
 
