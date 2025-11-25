@@ -12,7 +12,7 @@ public class GetProgressPhotosUseCase {
         this.progressRepository = progressRepository;
     }
 
-    public List<ProgressPhoto> execute() {
-        return progressRepository.getProgressPhotos();
+    public List<ProgressPhoto> execute(String userId) {
+        return progressRepository.getProgressPhotos(userId);
     }
 }

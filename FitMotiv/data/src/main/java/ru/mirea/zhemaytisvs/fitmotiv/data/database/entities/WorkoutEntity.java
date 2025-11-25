@@ -17,6 +17,7 @@ public class WorkoutEntity {
     @NonNull
     public String id;
     
+    public String userId; // ID пользователя, которому принадлежит тренировка
     public String type; // CARDIO, STRENGTH, YOGA, SWIMMING
     public int duration; // в минутах
     public int calories;
@@ -26,8 +27,9 @@ public class WorkoutEntity {
     public WorkoutEntity() {}
     
     @Ignore
-    public WorkoutEntity(String id, String type, int duration, int calories, Date date, String description) {
+    public WorkoutEntity(String id, String userId, String type, int duration, int calories, Date date, String description) {
         this.id = id;
+        this.userId = userId;
         this.type = type;
         this.duration = duration;
         this.calories = calories;

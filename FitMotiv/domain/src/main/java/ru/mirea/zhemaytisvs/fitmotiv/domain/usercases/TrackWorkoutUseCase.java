@@ -10,7 +10,7 @@ public class TrackWorkoutUseCase {
         this.workoutRepository = workoutRepository;
     }
 
-    public void execute(Workout workout) {
-        workoutRepository.saveWorkout(workout);
+    public void execute(Workout workout, String userId) {
+        workoutRepository.saveWorkout(workout, userId);
     }
 }

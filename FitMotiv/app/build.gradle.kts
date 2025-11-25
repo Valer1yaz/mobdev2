@@ -59,4 +59,8 @@ dependencies {
     
     // Glide для загрузки изображений
     implementation("com.github.bumptech.glide:glide:4.16.0")
+    
+    // TensorFlow Lite для распознавания изображений
+    implementation("org.tensorflow:tensorflow-lite:2.14.0")
+    implementation("org.tensorflow:tensorflow-lite-support:0.4.4")
 }

@@ -5,7 +5,7 @@ import java.util.List;
 import ru.mirea.zhemaytisvs.fitmotiv.domain.entities.ProgressPhoto;
 
 public interface ProgressRepository {
-    void saveProgressPhoto(ProgressPhoto photo);
-    List<ProgressPhoto> getProgressPhotos();
-    ProgressPhoto getProgressPhotoById(String id);
+    void saveProgressPhoto(ProgressPhoto photo, String userId);
+    List<ProgressPhoto> getProgressPhotos(String userId);
+    ProgressPhoto getProgressPhotoById(String id, String userId);
 }

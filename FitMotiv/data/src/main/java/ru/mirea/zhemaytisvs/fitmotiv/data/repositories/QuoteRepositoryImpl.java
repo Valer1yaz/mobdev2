@@ -6,10 +6,8 @@ import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 import ru.mirea.zhemaytisvs.fitmotiv.domain.repositories.QuoteRepository;
-import ru.mirea.zhemaytisvs.fitmotiv.data.storage.network.NetworkApi;
 import ru.mirea.zhemaytisvs.fitmotiv.data.storage.network.api.QuoteApiService;
 import ru.mirea.zhemaytisvs.fitmotiv.data.storage.network.models.QuoteApiResponse;
-import ru.mirea.zhemaytisvs.fitmotiv.data.storage.network.models.QuoteResponse;
 
 import java.util.concurrent.TimeUnit;
 import okhttp3.OkHttpClient;
@@ -18,7 +16,6 @@ public class QuoteRepositoryImpl implements QuoteRepository {
     private static final String TAG = "QuoteRepositoryImpl";
     private static final String BASE_URL = "https://api.forismatic.com/";
     
-    private final NetworkApi networkApi;
     private final QuoteApiService quoteApiService;
     private final Retrofit retrofit;
     
@@ -33,8 +30,6 @@ public class QuoteRepositoryImpl implements QuoteRepository {
     };
 
     public QuoteRepositoryImpl() {
-        this.networkApi = new NetworkApi();
-        
         // Настройка OkHttpClient с таймаутами для оптимизации
         OkHttpClient okHttpClient = new OkHttpClient.Builder()
                 .connectTimeout(5, TimeUnit.SECONDS)
@@ -72,13 +67,7 @@ public class QuoteRepositoryImpl implements QuoteRepository {
             Log.e(TAG, "Ошибка при получении цитаты из API", e);
         }
         
-        // Fallback: сначала пробуем mock API, затем локальные цитаты
-        try {
-            QuoteResponse mockResponse = networkApi.getMotivationalQuote();
-            return mockResponse.getContent() + " - " + mockResponse.getAuthor();
-        } catch (Exception e) {
-            Log.e(TAG, "Ошибка при получении mock цитаты", e);
-            return fallbackQuotes[new java.util.Random().nextInt(fallbackQuotes.length)];
-        }
+        // Fallback: возвращаем случайную локальную цитату
+        return fallbackQuotes[new java.util.Random().nextInt(fallbackQuotes.length)];
     }
 }

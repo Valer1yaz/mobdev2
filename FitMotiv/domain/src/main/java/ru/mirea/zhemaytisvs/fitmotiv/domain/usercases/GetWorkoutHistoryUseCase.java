@@ -12,7 +12,7 @@ public class GetWorkoutHistoryUseCase {
         this.workoutRepository = workoutRepository;
     }
 
-    public List<Workout> execute() {
-        return workoutRepository.getWorkoutHistory();
+    public List<Workout> execute(String userId) {
+        return workoutRepository.getWorkoutHistory(userId);
     }
 }

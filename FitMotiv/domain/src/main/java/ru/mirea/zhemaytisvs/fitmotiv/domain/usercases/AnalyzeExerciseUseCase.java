@@ -1,27 +1,25 @@
 package ru.mirea.zhemaytisvs.fitmotiv.domain.usercases;
 
 import ru.mirea.zhemaytisvs.fitmotiv.domain.entities.ExerciseAnalysis;
-import ru.mirea.zhemaytisvs.fitmotiv.domain.repositories.WorkoutRepository;
 
-import java.util.Random;
-
+/**
+ * Упрощенный UseCase для анализа упражнений
+ * TensorFlow Lite логика вынесена в presentation слой для упрощения архитектуры
+ */
 public class AnalyzeExerciseUseCase {
-    private final WorkoutRepository workoutRepository;
-    private final Random random = new Random();
-
-    public AnalyzeExerciseUseCase(WorkoutRepository workoutRepository) {
-        this.workoutRepository = workoutRepository;
+    public AnalyzeExerciseUseCase() {
+        // Упрощенная версия без зависимости от репозитория
     }
 
-    public ExerciseAnalysis execute(String exerciseName, byte[] imageData) {
-        // Имитация анализа изображения с помощью ML модели
-        // В реальном приложении здесь будет:
-        // 1. Предобработка изображения (resize, normalize)
-        // 2. Загрузка обученной модели (TensorFlow Lite, ML Kit)
-        // 3. Выполнение инференса
-        // 4. Постобработка результатов
-        
-        // Имитация обработки изображения
+    /**
+     * Анализирует упражнение (упрощенная версия без TensorFlow Lite в domain слое)
+     * @param exerciseName название упражнения
+     * @param imageData данные изображения
+     * @param mlScore оценка от ML модели (0.0-1.0), передается из presentation слоя
+     * @return результат анализа
+     */
+    public ExerciseAnalysis execute(String exerciseName, byte[] imageData, float mlScore) {
+        // Проверка входных данных
         if (imageData == null || imageData.length == 0) {
             return new ExerciseAnalysis(
                     exerciseName,
@@ -31,10 +29,11 @@ public class AnalyzeExerciseUseCase {
             );
         }
         
-        // Имитация анализа с учетом типа упражнения
-        double baseScore = getBaseScoreForExercise(exerciseName);
-        double variation = (random.nextDouble() - 0.5) * 20; // ±10%
-        double finalScore = Math.max(0, Math.min(100, baseScore + variation));
+        // Используем оценку от ML модели или fallback
+        float score = mlScore > 0 ? mlScore : (float) getBaseScoreForExercise(exerciseName) / 100.0f;
+        
+        // Преобразуем оценку в проценты (0-100)
+        double finalScore = score * 100.0;
         
         String feedback = generateFeedback(exerciseName, finalScore);
         boolean isCorrect = finalScore >= 70;

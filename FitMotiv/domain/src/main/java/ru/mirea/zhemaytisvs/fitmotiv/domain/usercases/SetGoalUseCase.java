@@ -10,7 +10,7 @@ public class SetGoalUseCase {
         this.userRepository = userRepository;
     }
 
-    public void execute(UserGoal goal) {
-        userRepository.setUserGoal(goal);
+    public void execute(UserGoal goal, String userId) {
+        userRepository.addUserGoal(goal, userId);
     }
 }

@@ -38,13 +38,4 @@
         android:textColor="#666666"
         android:textAlignment="center" />
 
-    <TextView
-        android:id="@+id/tvLikes"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="❤️ 0"
-        android:textSize="10sp"
-        android:textColor="#FF4444"
-        android:textAlignment="center" />
-
 </LinearLayout>

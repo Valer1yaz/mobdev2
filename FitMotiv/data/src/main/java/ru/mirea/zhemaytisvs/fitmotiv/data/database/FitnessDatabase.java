@@ -8,7 +8,7 @@ import androidx.room.RoomDatabase;
 import ru.mirea.zhemaytisvs.fitmotiv.data.database.dao.WorkoutDao;
 import ru.mirea.zhemaytisvs.fitmotiv.data.database.entities.WorkoutEntity;
 
-@Database(entities = {WorkoutEntity.class}, version = 1, exportSchema = false)
+@Database(entities = {WorkoutEntity.class}, version = 2, exportSchema = false)
 public abstract class FitnessDatabase extends RoomDatabase {
     private static volatile FitnessDatabase INSTANCE;
     
