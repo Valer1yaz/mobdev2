@@ -1,51 +1,50 @@
 package ru.mirea.zhemaytisvs.fitmotiv.data.repositories;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.List;
-
+import android.util.Log;
 import ru.mirea.zhemaytisvs.fitmotiv.domain.entities.ProgressPhoto;
 import ru.mirea.zhemaytisvs.fitmotiv.domain.repositories.ProgressRepository;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 public class ProgressRepositoryImpl implements ProgressRepository {
-    private List<ProgressPhoto> testPhotos;
-
+    private static final String TAG = "ProgressRepositoryImpl";
+    
+    // Хранилище фото по userId
+    private Map<String, List<ProgressPhoto>> userPhotosMap = new HashMap<>();
+    
     public ProgressRepositoryImpl() {
-        initializeTestData();
+        // Упрощенная реализация - фото хранятся в памяти
     }
-
-    private void initializeTestData() {
-        testPhotos = new ArrayList<>(Arrays.asList(
-                new ProgressPhoto("1", "https://example.com/photo1.jpg", "Начало тренировок",
-                        getDate(2024, Calendar.JANUARY, 1), 5),
-                new ProgressPhoto("2", "https://example.com/photo2.jpg", "Через 2 недели",
-                        getDate(2024, Calendar.JANUARY, 15), 12),
-                new ProgressPhoto("3", "https://example.com/photo3.jpg", "Месяц тренировок",
-                        getDate(2024, Calendar.FEBRUARY, 1), 25)
-        ));
-    }
-
-    private Date getDate(int year, int month, int day) {
-        Calendar calendar = Calendar.getInstance();
-        calendar.set(year, month, day);
-        return calendar.getTime();
+    
+    @Override
+    public void saveProgressPhoto(ProgressPhoto photo, String userId) {
+        photo.setUserId(userId);
+        List<ProgressPhoto> userPhotos = userPhotosMap.get(userId);
+        if (userPhotos == null) {
+            userPhotos = new ArrayList<>();
+            userPhotosMap.put(userId, userPhotos);
+        }
+        userPhotos.add(photo);
+        Log.d(TAG, "Photo saved for user: " + userId);
     }
 
     @Override
-    public void saveProgressPhoto(ProgressPhoto photo) {
-        testPhotos.add(photo);
+    public List<ProgressPhoto> getProgressPhotos(String userId) {
+        // Возвращаем фото конкретного пользователя
+        List<ProgressPhoto> userPhotos = userPhotosMap.get(userId);
+        if (userPhotos == null || userPhotos.isEmpty()) {
+            return new ArrayList<>();
+        }
+        return new ArrayList<>(userPhotos);
     }
 
     @Override
-    public List<ProgressPhoto> getProgressPhotos() {
-        return new ArrayList<>(testPhotos);
-    }
-
-    @Override
-    public ProgressPhoto getProgressPhotoById(String id) {
-        for (ProgressPhoto photo : testPhotos) {
+    public ProgressPhoto getProgressPhotoById(String id, String userId) {
+        List<ProgressPhoto> photos = getProgressPhotos(userId);
+        for (ProgressPhoto photo : photos) {
             if (photo.getId().equals(id)) {
                 return photo;
             }

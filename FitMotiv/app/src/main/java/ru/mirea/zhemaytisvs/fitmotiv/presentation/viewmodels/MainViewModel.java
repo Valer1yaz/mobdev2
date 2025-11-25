@@ -4,7 +4,6 @@ import android.app.Application;
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
-import androidx.lifecycle.MediatorLiveData;
 import androidx.lifecycle.MutableLiveData;
 
 import java.util.ArrayList;
@@ -25,8 +24,6 @@ import ru.mirea.zhemaytisvs.fitmotiv.domain.repositories.UserRepository;
 import ru.mirea.zhemaytisvs.fitmotiv.domain.repositories.WorkoutRepository;
 import ru.mirea.zhemaytisvs.fitmotiv.domain.usercases.*;
 import ru.mirea.zhemaytisvs.fitmotiv.data.repositories.*;
-import ru.mirea.zhemaytisvs.fitmotiv.data.storage.network.NetworkApi;
-import ru.mirea.zhemaytisvs.fitmotiv.data.storage.network.models.WorkoutResponse;
 
 public class MainViewModel extends AndroidViewModel {
     
@@ -39,22 +36,17 @@ public class MainViewModel extends AndroidViewModel {
     private GetCurrentUserUseCase getCurrentUserUseCase;
     private AnalyzeExerciseUseCase analyzeExerciseUseCase;
     
-    // Network API для получения данных из сети
-    private NetworkApi networkApi;
-    
     // Executor для фоновых операций
     private ExecutorService executorService;
     
     // LiveData для цитат
     private MutableLiveData<String> quoteLiveData;
     
-    // MediatorLiveData для тренировок (объединяет данные из БД и сети)
-    private MediatorLiveData<List<Workout>> workoutsMediatorLiveData;
-    private MutableLiveData<List<Workout>> workoutsFromDbLiveData;
-    private MutableLiveData<List<Workout>> workoutsFromNetworkLiveData;
+    // LiveData для тренировок
+    private MutableLiveData<List<Workout>> workoutsLiveData;
     
-    // LiveData для целей
-    private MutableLiveData<UserGoal> goalLiveData;
+    // LiveData для целей (список)
+    private MutableLiveData<List<UserGoal>> goalsLiveData;
     
     // LiveData для фото прогресса
     private MutableLiveData<List<ProgressPhoto>> progressPhotosLiveData;
@@ -67,6 +59,8 @@ public class MainViewModel extends AndroidViewModel {
     
     // LiveData для анализа упражнений
     private MutableLiveData<ExerciseAnalysis> exerciseAnalysisLiveData;
+    private UserRepository userRepository;
+    private ProgressRepository progressRepository;
     
     public MainViewModel(@NonNull Application application) {
         super(application);
@@ -78,20 +72,15 @@ public class MainViewModel extends AndroidViewModel {
         
         // Инициализация LiveData
         initializeLiveData();
-        
-        // Настройка MediatorLiveData для тренировок
-        setupWorkoutsMediator();
     }
     
     private void initializeRepositories(Application application) {
         // Используем Room Database вместо SharedPrefs для тренировок
         WorkoutRepository workoutRepository = new WorkoutRepositoryImpl(application);
         QuoteRepository quoteRepository = new QuoteRepositoryImpl();
-        UserRepository userRepository = new UserRepositoryImpl();
+        UserRepository userRepository = new UserRepositoryImpl(application);
         ProgressRepository progressRepository = new ProgressRepositoryImpl();
         AuthRepository authRepository = new AuthRepositoryImpl();
-        
-        networkApi = new NetworkApi();
         
         trackWorkoutUseCase = new TrackWorkoutUseCase(workoutRepository);
         getWorkoutHistoryUseCase = new GetWorkoutHistoryUseCase(workoutRepository);
@@ -99,57 +88,19 @@ public class MainViewModel extends AndroidViewModel {
         setGoalUseCase = new SetGoalUseCase(userRepository);
         getProgressPhotosUseCase = new GetProgressPhotosUseCase(progressRepository);
         getCurrentUserUseCase = new GetCurrentUserUseCase(authRepository);
-        analyzeExerciseUseCase = new AnalyzeExerciseUseCase(workoutRepository);
+        analyzeExerciseUseCase = new AnalyzeExerciseUseCase();
+        this.progressRepository = progressRepository;
+        this.userRepository = userRepository;
     }
     
     private void initializeLiveData() {
         quoteLiveData = new MutableLiveData<>();
-        workoutsFromDbLiveData = new MutableLiveData<>();
-        workoutsFromNetworkLiveData = new MutableLiveData<>();
-        workoutsMediatorLiveData = new MediatorLiveData<>();
-        goalLiveData = new MutableLiveData<>();
+        workoutsLiveData = new MutableLiveData<>();
+        goalsLiveData = new MutableLiveData<>();
         progressPhotosLiveData = new MutableLiveData<>();
         currentUserLiveData = new MutableLiveData<>();
         workoutStatisticsLiveData = new MutableLiveData<>();
         exerciseAnalysisLiveData = new MutableLiveData<>();
-    }
-    
-    private void setupWorkoutsMediator() {
-        // MediatorLiveData объединяет данные из БД и сети
-        workoutsMediatorLiveData.addSource(workoutsFromDbLiveData, dbWorkouts -> {
-            combineWorkouts();
-        });
-        
-        workoutsMediatorLiveData.addSource(workoutsFromNetworkLiveData, networkWorkouts -> {
-            combineWorkouts();
-        });
-    }
-    
-    private void combineWorkouts() {
-        List<Workout> dbWorkouts = workoutsFromDbLiveData.getValue();
-        List<Workout> networkWorkouts = workoutsFromNetworkLiveData.getValue();
-        
-        if (dbWorkouts == null) dbWorkouts = new ArrayList<>();
-        if (networkWorkouts == null) networkWorkouts = new ArrayList<>();
-        
-        // Объединяем тренировки, избегая дубликатов по ID
-        List<Workout> combinedWorkouts = new ArrayList<>(dbWorkouts);
-        
-        for (Workout networkWorkout : networkWorkouts) {
-            boolean exists = false;
-            for (Workout dbWorkout : combinedWorkouts) {
-                if (dbWorkout.getId().equals(networkWorkout.getId())) {
-                    exists = true;
-                    break;
-                }
-            }
-            if (!exists) {
-                combinedWorkouts.add(networkWorkout);
-            }
-        }
-        
-        workoutsMediatorLiveData.setValue(combinedWorkouts);
-        updateWorkoutStatistics(combinedWorkouts);
     }
     
     // Методы для загрузки данных
@@ -166,68 +117,155 @@ public class MainViewModel extends AndroidViewModel {
     }
     
     public void loadWorkouts() {
-        // Оптимизация: сначала загружаем из БД (быстро), затем из сети (медленно)
-        executorService.execute(() -> {
-            try {
-                List<Workout> workouts = getWorkoutHistoryUseCase.execute();
-                workoutsFromDbLiveData.postValue(workouts);
-            } catch (Exception e) {
-                workoutsFromDbLiveData.postValue(new ArrayList<>());
-            }
-        });
-        
-        // Загружаем тренировки из сети в фоне (не блокирует UI)
-        executorService.execute(() -> {
-            try {
-                List<WorkoutResponse> networkWorkouts = networkApi.getWorkoutsFromCloud();
-                List<Workout> domainWorkouts = convertToDomainWorkouts(networkWorkouts);
-                workoutsFromNetworkLiveData.postValue(domainWorkouts);
-            } catch (Exception e) {
-                // При ошибке сети просто не обновляем данные из сети
-                workoutsFromNetworkLiveData.postValue(new ArrayList<>());
-            }
-        });
-    }
-    
-    private List<Workout> convertToDomainWorkouts(List<WorkoutResponse> networkWorkouts) {
-        List<Workout> domainWorkouts = new ArrayList<>();
-        for (WorkoutResponse response : networkWorkouts) {
-            Workout.WorkoutType type = Workout.WorkoutType.valueOf(response.getType());
-            Workout workout = new Workout(
-                    response.getId(),
-                    type,
-                    response.getDuration(),
-                    response.getCalories(),
-                    response.getDate(),
-                    response.getDescription()
-            );
-            domainWorkouts.add(workout);
+        // Получаем userId текущего пользователя
+        User currentUser = currentUserLiveData.getValue();
+        if (currentUser == null || currentUser.isGuest()) {
+            // Для гостей не загружаем тренировки
+            workoutsLiveData.postValue(new ArrayList<>());
+            return;
         }
-        return domainWorkouts;
+        
+        String userId = currentUser.getUid();
+        
+        // Загружаем тренировки из БД
+        executorService.execute(() -> {
+            try {
+                List<Workout> workouts = getWorkoutHistoryUseCase.execute(userId);
+                workoutsLiveData.postValue(workouts != null ? workouts : new ArrayList<>());
+                updateWorkoutStatistics(workouts != null ? workouts : new ArrayList<>());
+            } catch (Exception e) {
+                // Обработка ошибки БД - отправляем пустой список
+                workoutsLiveData.postValue(new ArrayList<>());
+                updateWorkoutStatistics(new ArrayList<>());
+            }
+        });
     }
     
     public void loadProgressPhotos() {
         executorService.execute(() -> {
             try {
-                List<ProgressPhoto> photos = getProgressPhotosUseCase.execute();
-                progressPhotosLiveData.postValue(photos);
+                // Получаем userId текущего пользователя
+                User currentUser = currentUserLiveData.getValue();
+                if (currentUser == null || currentUser.isGuest()) {
+                    // Для гостей не загружаем фото
+                    progressPhotosLiveData.postValue(new ArrayList<>());
+                    return;
+                }
+                
+                String userId = currentUser.getUid();
+                List<ProgressPhoto> photos = getProgressPhotosUseCase.execute(userId);
+                // Проверяем, что данные не пустые
+                if (photos != null && !photos.isEmpty()) {
+                    progressPhotosLiveData.postValue(photos);
+                } else {
+                    // Если данные пустые, отправляем пустой список
+                    progressPhotosLiveData.postValue(new ArrayList<>());
+                }
             } catch (Exception e) {
+                // Обработка ошибок - отправляем пустой список
+                // В реальном приложении можно отправить сообщение об ошибке через отдельный LiveData
                 progressPhotosLiveData.postValue(new ArrayList<>());
             }
         });
     }
     
-    public void loadGoal() {
+    public void addProgressPhoto(ProgressPhoto photo) {
         executorService.execute(() -> {
             try {
-                // Для демонстрации создаем тестовую цель
-                // В реальном приложении здесь будет загрузка из репозитория
-                UserGoal goal = new UserGoal("1", 75, 4, "Похудеть на 5 кг за месяц", false);
-                goalLiveData.postValue(goal);
+                // Получаем userId текущего пользователя
+                User currentUser = currentUserLiveData.getValue();
+                if (currentUser == null || currentUser.isGuest()) {
+                    return; // Гости не могут добавлять фото
+                }
+                
+                String userId = currentUser.getUid();
+                progressRepository.saveProgressPhoto(photo, userId);
+                // Обновляем список фото
+                loadProgressPhotos();
             } catch (Exception e) {
-                goalLiveData.postValue(null);
+                // Обработка ошибки
             }
         });
+    }
+    
+    public void loadGoals() {
+        executorService.execute(() -> {
+            try {
+                // Получаем userId текущего пользователя
+                User currentUser = currentUserLiveData.getValue();
+                if (currentUser == null || currentUser.isGuest()) {
+                    goalsLiveData.postValue(new ArrayList<>());
+                    return;
+                }
+                
+                String userId = currentUser.getUid();
+                // Загружаем список целей из репозитория для этого пользователя
+                List<UserGoal> goals = userRepository.getUserGoals(userId);
+                goalsLiveData.postValue(goals != null ? goals : new ArrayList<>());
+            } catch (Exception e) {
+                goalsLiveData.postValue(new ArrayList<>());
+            }
+        });
+    }
+    
+    // Метод для проверки выполнения целей
+    public void checkGoalProgress() {
+        executorService.execute(() -> {
+            try {
+                User currentUser = currentUserLiveData.getValue();
+                if (currentUser == null || currentUser.isGuest()) {
+                    return;
+                }
+                
+                String userId = currentUser.getUid();
+                List<UserGoal> goals = userRepository.getUserGoals(userId);
+                // Получаем тренировки за текущую неделю для этого пользователя
+                List<Workout> workouts = getWorkoutHistoryUseCase.execute(userId);
+                int workoutsThisWeek = countWorkoutsThisWeek(workouts);
+                
+                boolean updated = false;
+                for (UserGoal goal : goals) {
+                    if (!goal.isCompleted() && workoutsThisWeek >= goal.getWorkoutsPerWeek()) {
+                        // Цель выполнена
+                        UserGoal completedGoal = new UserGoal(
+                                goal.getId(),
+                                goal.getTargetWeight(),
+                                goal.getWorkoutsPerWeek(),
+                                goal.getDescription(),
+                                true
+                        );
+                        // Обновляем цель в списке
+                        goals.set(goals.indexOf(goal), completedGoal);
+                        updated = true;
+                    }
+                }
+                
+                if (updated) {
+                    // Сохраняем обновленный список
+                    for (UserGoal goal : goals) {
+                        userRepository.addUserGoal(goal, userId);
+                    }
+                    goalsLiveData.postValue(goals);
+                }
+            } catch (Exception e) {
+                // Обработка ошибки
+            }
+        });
+    }
+    
+    private int countWorkoutsThisWeek(List<Workout> workouts) {
+        if (workouts == null) return 0;
+        
+        long now = System.currentTimeMillis();
+        long weekAgo = now - (7 * 24 * 60 * 60 * 1000L);
+        
+        int count = 0;
+        for (Workout workout : workouts) {
+            if (workout.getDate().getTime() >= weekAgo) {
+                count++;
+            }
+        }
+        return count;
     }
     
     public void loadCurrentUser() {
@@ -258,20 +296,54 @@ public class MainViewModel extends AndroidViewModel {
     public void addWorkout(Workout workout) {
         executorService.execute(() -> {
             try {
-                trackWorkoutUseCase.execute(workout);
+                // Получаем userId текущего пользователя
+                User currentUser = currentUserLiveData.getValue();
+                if (currentUser == null || currentUser.isGuest()) {
+                    return; // Гости не могут добавлять тренировки
+                }
+                
+                String userId = currentUser.getUid();
+                trackWorkoutUseCase.execute(workout, userId);
                 // Обновляем список тренировок
                 loadWorkouts();
+                // Проверяем прогресс выполнения цели после добавления тренировки
+                checkGoalProgress();
             } catch (Exception e) {
                 // Обработка ошибки
             }
         });
     }
     
-    public void setGoal(UserGoal goal) {
+    public void addGoal(UserGoal goal) {
         executorService.execute(() -> {
             try {
-                setGoalUseCase.execute(goal);
-                goalLiveData.postValue(goal);
+                // Получаем userId текущего пользователя
+                User currentUser = currentUserLiveData.getValue();
+                if (currentUser == null || currentUser.isGuest()) {
+                    return; // Гости не могут устанавливать цели
+                }
+                
+                String userId = currentUser.getUid();
+                setGoalUseCase.execute(goal, userId);
+                // Обновляем список целей
+                loadGoals();
+            } catch (Exception e) {
+                // Обработка ошибки
+            }
+        });
+    }
+    
+    public void deleteGoal(String goalId) {
+        executorService.execute(() -> {
+            try {
+                User currentUser = currentUserLiveData.getValue();
+                if (currentUser == null || currentUser.isGuest()) {
+                    return;
+                }
+                
+                String userId = currentUser.getUid();
+                userRepository.deleteUserGoal(goalId, userId);
+                loadGoals();
             } catch (Exception e) {
                 // Обработка ошибки
             }
@@ -281,7 +353,14 @@ public class MainViewModel extends AndroidViewModel {
     public void analyzeExercise(String exerciseName, byte[] imageData) {
         executorService.execute(() -> {
             try {
-                ExerciseAnalysis analysis = analyzeExerciseUseCase.execute(exerciseName, imageData);
+                // Используем TensorFlow Lite для анализа изображения
+                ru.mirea.zhemaytisvs.fitmotiv.presentation.ml.TensorFlowLiteImageClassifier classifier = 
+                        new ru.mirea.zhemaytisvs.fitmotiv.presentation.ml.TensorFlowLiteImageClassifier(getApplication());
+                float mlScore = classifier.analyzeExercise(imageData, exerciseName);
+                classifier.close();
+                
+                // Передаем оценку в UseCase
+                ExerciseAnalysis analysis = analyzeExerciseUseCase.execute(exerciseName, imageData, mlScore);
                 exerciseAnalysisLiveData.postValue(analysis);
             } catch (Exception e) {
                 exerciseAnalysisLiveData.postValue(null);
@@ -296,11 +375,11 @@ public class MainViewModel extends AndroidViewModel {
     }
     
     public LiveData<List<Workout>> getWorkoutsLiveData() {
-        return workoutsMediatorLiveData;
+        return workoutsLiveData;
     }
     
-    public LiveData<UserGoal> getGoalLiveData() {
-        return goalLiveData;
+    public LiveData<List<UserGoal>> getGoalsLiveData() {
+        return goalsLiveData;
     }
     
     public LiveData<List<ProgressPhoto>> getProgressPhotosLiveData() {

@@ -4,6 +4,12 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
 
     <application
         android:allowBackup="true"
@@ -35,8 +41,34 @@
             android:exported="false" />
 
         <activity
-            android:name=".presentation.activities.WorkoutDetailActivity"
+            android:name=".presentation.activities.ProgressPhotoDetailActivity"
             android:exported="false" />
+
+        <activity
+            android:name=".presentation.activities.AddPhotoActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".presentation.activities.PhotoGalleryActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".presentation.activities.GoalsListActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".presentation.activities.ExerciseAnalysisActivity"
+            android:exported="false" />
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="ru.mirea.zhemaytisvs.fitmotiv.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
 
     </application>
 
