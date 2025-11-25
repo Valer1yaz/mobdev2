@@ -1,6 +1,8 @@
 package ru.mirea.zhemaytisvs.fitmotiv.presentation.activities;
 
+import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
@@ -11,6 +13,8 @@ import android.widget.ImageView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 
 import com.bumptech.glide.Glide;
@@ -26,6 +30,7 @@ import java.util.Date;
 public class AddPhotoActivity extends AppCompatActivity {
     private static final int REQUEST_IMAGE_PICK = 1;
     private static final int REQUEST_IMAGE_CAPTURE = 2;
+    private static final int REQUEST_CAMERA_PERMISSION = 100;
     
     private ImageView ivPreview;
     private EditText etDescription;
@@ -93,6 +98,21 @@ public class AddPhotoActivity extends AppCompatActivity {
     }
 
     private void takePhoto() {
+        // Проверяем разрешение на камеру
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) 
+                != PackageManager.PERMISSION_GRANTED) {
+            // Запрашиваем разрешение
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.CAMERA},
+                    REQUEST_CAMERA_PERMISSION);
+            return;
+        }
+        
+        // Если разрешение есть, открываем камеру
+        openCamera();
+    }
+    
+    private void openCamera() {
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
             try {
@@ -110,6 +130,19 @@ public class AddPhotoActivity extends AppCompatActivity {
             }
         } else {
             Toast.makeText(this, "Камера недоступна", Toast.LENGTH_SHORT).show();
+        }
+    }
+    
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQUEST_CAMERA_PERMISSION) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // Разрешение получено, открываем камеру
+                openCamera();
+            } else {
+                Toast.makeText(this, "Для использования камеры необходимо предоставить разрешение", Toast.LENGTH_LONG).show();
+            }
         }
     }
 
@@ -167,6 +200,11 @@ public class AddPhotoActivity extends AppCompatActivity {
         viewModel.addProgressPhoto(photo);
         
         Toast.makeText(this, "Фото добавлено!", Toast.LENGTH_SHORT).show();
+        
+        // Обновляем список фото после небольшой задержки
+        android.os.Handler handler = new android.os.Handler(android.os.Looper.getMainLooper());
+        handler.postDelayed(() -> viewModel.loadProgressPhotos(), 500);
+        
         finish();
     }
 }

@@ -8,6 +8,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import ru.mirea.zhemaytisvs.fitmotiv.data.storage.models.UserGoalStorage;
+import ru.mirea.zhemaytisvs.fitmotiv.data.storage.models.ProgressPhotoStorage;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -86,5 +87,46 @@ public class SharedPrefStorageImpl implements SharedPrefStorage {
         List<UserGoalStorage> goals = getUserGoals(userId);
         goals.removeIf(goal -> goal.getId().equals(goalId));
         saveUserGoals(goals, userId);
+    }
+
+    @Override
+    public void saveProgressPhoto(ProgressPhotoStorage photo, String userId) {
+        // Получаем текущий список фото
+        List<ProgressPhotoStorage> photos = getProgressPhotos(userId);
+        // Добавляем новое фото
+        photos.add(photo);
+        // Сохраняем обновленный список
+        saveProgressPhotos(photos, userId);
+    }
+
+    @Override
+    public void saveProgressPhotos(List<ProgressPhotoStorage> photos, String userId) {
+        try {
+            String prefix = "user_" + userId + "_photos";
+            Gson gson = new Gson();
+            String json = gson.toJson(photos);
+            sharedPreferences.edit().putString(prefix, json).apply();
+            Log.d(TAG, "Progress photos saved to SharedPreferences for user: " + userId);
+        } catch (Exception e) {
+            Log.e(TAG, "Error saving progress photos to SharedPreferences", e);
+        }
+    }
+
+    @Override
+    public List<ProgressPhotoStorage> getProgressPhotos(String userId) {
+        try {
+            String prefix = "user_" + userId + "_photos";
+            String json = sharedPreferences.getString(prefix, null);
+            if (json == null || json.isEmpty()) {
+                return new ArrayList<>();
+            }
+            Gson gson = new Gson();
+            Type type = new TypeToken<List<ProgressPhotoStorage>>(){}.getType();
+            List<ProgressPhotoStorage> photos = gson.fromJson(json, type);
+            return photos != null ? photos : new ArrayList<>();
+        } catch (Exception e) {
+            Log.e(TAG, "Error getting progress photos from SharedPreferences", e);
+            return new ArrayList<>();
+        }
     }
 }

@@ -64,6 +64,7 @@
             android:layout_height="wrap_content"
             android:inputType="textMultiLine"
             android:minLines="3"
+            android:imeOptions="actionDone"
             android:hint="Опишите ваше фото прогресса"
             android:layout_marginBottom="24dp" />
 

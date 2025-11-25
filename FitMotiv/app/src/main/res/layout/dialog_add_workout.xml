@@ -31,6 +31,7 @@
         android:layout_height="wrap_content"
         android:inputType="number"
         android:hint="Например: 60"
+        android:imeOptions="actionNext"
         android:layout_marginBottom="16dp" />
 
     <TextView
@@ -46,6 +47,7 @@
         android:layout_height="wrap_content"
         android:inputType="number"
         android:hint="Например: 450"
+        android:imeOptions="actionNext"
         android:layout_marginBottom="16dp" />
 
     <TextView
@@ -61,6 +63,7 @@
         android:layout_height="wrap_content"
         android:inputType="textMultiLine"
         android:minLines="2"
+        android:imeOptions="actionDone"
         android:hint="Опишите вашу тренировку"
         android:layout_marginBottom="16dp" />
 

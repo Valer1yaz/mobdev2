@@ -79,7 +79,7 @@ public class MainViewModel extends AndroidViewModel {
         WorkoutRepository workoutRepository = new WorkoutRepositoryImpl(application);
         QuoteRepository quoteRepository = new QuoteRepositoryImpl();
         UserRepository userRepository = new UserRepositoryImpl(application);
-        ProgressRepository progressRepository = new ProgressRepositoryImpl();
+        ProgressRepository progressRepository = new ProgressRepositoryImpl(application);
         AuthRepository authRepository = new AuthRepositoryImpl();
         
         trackWorkoutUseCase = new TrackWorkoutUseCase(workoutRepository);
@@ -147,23 +147,22 @@ public class MainViewModel extends AndroidViewModel {
                 // Получаем userId текущего пользователя
                 User currentUser = currentUserLiveData.getValue();
                 if (currentUser == null || currentUser.isGuest()) {
-                    // Для гостей не загружаем фото
                     progressPhotosLiveData.postValue(new ArrayList<>());
                     return;
                 }
                 
                 String userId = currentUser.getUid();
-                List<ProgressPhoto> photos = getProgressPhotosUseCase.execute(userId);
-                // Проверяем, что данные не пустые
-                if (photos != null && !photos.isEmpty()) {
-                    progressPhotosLiveData.postValue(photos);
-                } else {
-                    // Если данные пустые, отправляем пустой список
+                if (userId == null || userId.isEmpty()) {
+                    android.util.Log.e("MainViewModel", "Cannot load photos: userId is null or empty");
                     progressPhotosLiveData.postValue(new ArrayList<>());
+                    return;
                 }
+                
+                List<ProgressPhoto> photos = progressRepository.getProgressPhotos(userId);
+                android.util.Log.d("MainViewModel", "Loaded " + (photos != null ? photos.size() : 0) + " photos for user: " + userId);
+                progressPhotosLiveData.postValue(photos != null ? photos : new ArrayList<>());
             } catch (Exception e) {
-                // Обработка ошибок - отправляем пустой список
-                // В реальном приложении можно отправить сообщение об ошибке через отдельный LiveData
+                android.util.Log.e("MainViewModel", "Error loading photos", e);
                 progressPhotosLiveData.postValue(new ArrayList<>());
             }
         });
@@ -175,15 +174,23 @@ public class MainViewModel extends AndroidViewModel {
                 // Получаем userId текущего пользователя
                 User currentUser = currentUserLiveData.getValue();
                 if (currentUser == null || currentUser.isGuest()) {
+                    android.util.Log.e("MainViewModel", "Cannot add photo: user is null or guest");
                     return; // Гости не могут добавлять фото
                 }
                 
                 String userId = currentUser.getUid();
+                if (userId == null || userId.isEmpty()) {
+                    android.util.Log.e("MainViewModel", "Cannot add photo: userId is null or empty");
+                    return;
+                }
+                
                 progressRepository.saveProgressPhoto(photo, userId);
+                android.util.Log.d("MainViewModel", "Photo saved for user: " + userId);
+                
                 // Обновляем список фото
                 loadProgressPhotos();
             } catch (Exception e) {
-                // Обработка ошибки
+                android.util.Log.e("MainViewModel", "Error adding photo", e);
             }
         });
     }
@@ -299,17 +306,25 @@ public class MainViewModel extends AndroidViewModel {
                 // Получаем userId текущего пользователя
                 User currentUser = currentUserLiveData.getValue();
                 if (currentUser == null || currentUser.isGuest()) {
+                    android.util.Log.e("MainViewModel", "Cannot add workout: user is null or guest");
                     return; // Гости не могут добавлять тренировки
                 }
                 
                 String userId = currentUser.getUid();
+                if (userId == null || userId.isEmpty()) {
+                    android.util.Log.e("MainViewModel", "Cannot add workout: userId is null or empty");
+                    return;
+                }
+                
                 trackWorkoutUseCase.execute(workout, userId);
+                android.util.Log.d("MainViewModel", "Workout saved for user: " + userId);
+                
                 // Обновляем список тренировок
                 loadWorkouts();
                 // Проверяем прогресс выполнения цели после добавления тренировки
                 checkGoalProgress();
             } catch (Exception e) {
-                // Обработка ошибки
+                android.util.Log.e("MainViewModel", "Error adding workout", e);
             }
         });
     }
@@ -320,15 +335,23 @@ public class MainViewModel extends AndroidViewModel {
                 // Получаем userId текущего пользователя
                 User currentUser = currentUserLiveData.getValue();
                 if (currentUser == null || currentUser.isGuest()) {
+                    android.util.Log.e("MainViewModel", "Cannot add goal: user is null or guest");
                     return; // Гости не могут устанавливать цели
                 }
                 
                 String userId = currentUser.getUid();
+                if (userId == null || userId.isEmpty()) {
+                    android.util.Log.e("MainViewModel", "Cannot add goal: userId is null or empty");
+                    return;
+                }
+                
                 setGoalUseCase.execute(goal, userId);
+                android.util.Log.d("MainViewModel", "Goal saved for user: " + userId);
+                
                 // Обновляем список целей
                 loadGoals();
             } catch (Exception e) {
-                // Обработка ошибки
+                android.util.Log.e("MainViewModel", "Error adding goal", e);
             }
         });
     }

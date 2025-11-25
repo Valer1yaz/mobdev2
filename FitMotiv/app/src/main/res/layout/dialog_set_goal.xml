@@ -18,6 +18,7 @@
         android:layout_height="wrap_content"
         android:inputType="number"
         android:hint="Например: 75"
+        android:imeOptions="actionNext"
         android:layout_marginBottom="16dp" />
 
     <TextView
@@ -33,6 +34,7 @@
         android:layout_height="wrap_content"
         android:inputType="number"
         android:hint="Например: 4"
+        android:imeOptions="actionNext"
         android:layout_marginBottom="16dp" />
 
     <TextView
@@ -48,6 +50,7 @@
         android:layout_height="wrap_content"
         android:inputType="textMultiLine"
         android:minLines="2"
+        android:imeOptions="actionDone"
         android:hint="Опишите вашу цель"
         android:layout_marginBottom="16dp" />
 

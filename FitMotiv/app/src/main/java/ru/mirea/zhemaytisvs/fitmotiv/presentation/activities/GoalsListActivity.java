@@ -98,6 +98,8 @@ public class GoalsListActivity extends AppCompatActivity {
             @Override
             public void onGoalSet(UserGoal goal) {
                 viewModel.addGoal(goal);
+                // Обновляем список целей после небольшой задержки
+                rvGoals.postDelayed(() -> viewModel.loadGoals(), 500);
             }
         });
         dialog.show(getSupportFragmentManager(), "SetGoalDialog");

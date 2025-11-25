@@ -1,6 +1,8 @@
 package ru.mirea.zhemaytisvs.fitmotiv.presentation.activities;
 
+import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
@@ -15,6 +17,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 
@@ -28,6 +32,7 @@ import ru.mirea.zhemaytisvs.fitmotiv.presentation.viewmodels.MainViewModel;
 public class ExerciseAnalysisActivity extends AppCompatActivity {
     private static final int REQUEST_IMAGE_PICK = 1;
     private static final int REQUEST_IMAGE_CAPTURE = 2;
+    private static final int REQUEST_CAMERA_PERMISSION = 100;
 
     private MainViewModel viewModel;
     private ImageView ivExerciseImage;
@@ -107,11 +112,39 @@ public class ExerciseAnalysisActivity extends AppCompatActivity {
     }
 
     private void takePhoto() {
+        // Проверяем разрешение на камеру
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) 
+                != PackageManager.PERMISSION_GRANTED) {
+            // Запрашиваем разрешение
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.CAMERA},
+                    REQUEST_CAMERA_PERMISSION);
+            return;
+        }
+        
+        // Если разрешение есть, открываем камеру
+        openCamera();
+    }
+    
+    private void openCamera() {
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
             startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE);
         } else {
             Toast.makeText(this, "Камера недоступна", Toast.LENGTH_SHORT).show();
+        }
+    }
+    
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQUEST_CAMERA_PERMISSION) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // Разрешение получено, открываем камеру
+                openCamera();
+            } else {
+                Toast.makeText(this, "Для использования камеры необходимо предоставить разрешение", Toast.LENGTH_LONG).show();
+            }
         }
     }
 

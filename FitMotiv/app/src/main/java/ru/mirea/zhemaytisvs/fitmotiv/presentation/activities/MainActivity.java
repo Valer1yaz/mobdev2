@@ -266,6 +266,13 @@ public class MainActivity extends AppCompatActivity {
                                 "Пользователь: " + (user.getDisplayName() != null ? user.getDisplayName() : user.getEmail());
                         tvUserInfo.setText(userInfo);
                     }
+                    // Загружаем данные после загрузки пользователя
+                    if (!user.isGuest()) {
+                        viewModel.loadWorkouts();
+                        viewModel.loadProgressPhotos();
+                        viewModel.loadGoals();
+                        viewModel.checkGoalProgress();
+                    }
                 }
             }
         });
@@ -324,17 +331,13 @@ public class MainActivity extends AppCompatActivity {
         // Загружаем цитату (быстрая операция)
         viewModel.loadMotivationalQuote();
         
-        // Загружаем тренировки (может быть долго из-за сети)
-        viewModel.loadWorkouts();
-        
-        // Загружаем фото прогресса из сети
-        viewModel.loadProgressPhotos();
-        
-        // Загружаем список целей пользователя
-        viewModel.loadGoals();
-        
-        // Проверяем прогресс выполнения цели
-        viewModel.checkGoalProgress();
+        // Загружаем данные для текущего пользователя (если он уже загружен)
+        if (currentUser != null && !currentUser.isGuest()) {
+            viewModel.loadWorkouts();
+            viewModel.loadProgressPhotos();
+            viewModel.loadGoals();
+            viewModel.checkGoalProgress();
+        }
     }
 
     private void setupEventListeners() {
@@ -417,7 +420,8 @@ public class MainActivity extends AppCompatActivity {
 
     private void addNewWorkout() {
         // Проверяем, что пользователь авторизован
-        if (currentUser == null || currentUser.isGuest()) {
+        User user = viewModel.getCurrentUserLiveData().getValue();
+        if (user == null || user.isGuest()) {
             showToast("Для добавления тренировки необходимо зарегистрироваться");
             return;
         }
@@ -430,6 +434,8 @@ public class MainActivity extends AppCompatActivity {
                 // Добавляем тренировку через ViewModel
                 viewModel.addWorkout(workout);
                 showToast("Тренировка добавлена!");
+                // Обновляем список тренировок после небольшой задержки
+                rvProgressPhotos.postDelayed(() -> viewModel.loadWorkouts(), 500);
             }
         });
         dialog.show(getSupportFragmentManager(), "AddWorkoutDialog");
