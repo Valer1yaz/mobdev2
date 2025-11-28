@@ -61,23 +61,21 @@
 
 Задание: Реализовать получение сущностей из сети с помощью Retrofit, обработать возможные ошибки, реализовать отображение изображений с помощью Picasso, Coil или Glide
 
-Было реализовано получение данных о мотивационных цитатах из внешнего API с использованием Retrofit, настроен сетевой слой с обработкой ошибок и асинхронными запросами к API сервису
+Было реализовано получение данных о мотивационных цитатах из внешнего API с использованием Retrofit, настроен сетевой слой с обработкой ошибок и асинхронными запросами к бесплатному API сервису https://api.forismatic.com/api/1.0/
+
+<img width="842" height="607" alt="image" src="https://github.com/user-attachments/assets/4e21ee97-a053-4261-acf4-624a75ad4f43" />
+
+
+<img width="423" height="833" alt="image" src="https://github.com/user-attachments/assets/4f010cdc-d80a-40cd-832a-d3ddde51acbb" />
+
 
 Интегрирована библиотека Glide для загрузки и отображения изображений различных видов тренировок в RecyclerView.
-```
-String imageName = workout.getImageName();
-int resId = holder.itemView.getContext().getResources()
-        .getIdentifier(imageName, "drawable", holder.itemView.getContext().getPackageName());
 
-if (resId != 0) {
-    Glide.with(holder.itemView.getContext())
-            .load(resId)
-            .placeholder(R.drawable.cat_default)
-            .error(R.drawable.workout_default)
-            .into(holder.workoutImage);
-}
-```
+<img width="917" height="690" alt="image" src="https://github.com/user-attachments/assets/e57dbda8-2bcf-40de-a1a4-704cba388cff" />
+
 
 Добавлен функционал создания новых записей о тренировках.
+
+<img width="453" height="881" alt="image" src="https://github.com/user-attachments/assets/b93a0963-ef44-4d6a-a79e-b23c44ec7c95" /> <img width="428" height="848" alt="image" src="https://github.com/user-attachments/assets/b228acc1-b38a-4a22-ab51-409276892913" />
 
 
