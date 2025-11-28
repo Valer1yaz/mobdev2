@@ -45,6 +45,8 @@ dependencies {
     implementation(libs.cardview)
     implementation(libs.recyclerview)
     testImplementation(libs.junit)
+    implementation (libs.room.runtime)
+    annotationProcessor (libs.room.compiler)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
 

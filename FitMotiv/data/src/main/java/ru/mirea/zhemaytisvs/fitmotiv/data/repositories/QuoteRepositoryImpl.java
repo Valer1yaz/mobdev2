@@ -9,6 +9,9 @@ import ru.mirea.zhemaytisvs.fitmotiv.domain.repositories.QuoteRepository;
 import ru.mirea.zhemaytisvs.fitmotiv.data.storage.network.api.QuoteApiService;
 import ru.mirea.zhemaytisvs.fitmotiv.data.storage.network.models.QuoteApiResponse;
 
+import java.io.IOException;
+import java.net.SocketTimeoutException;
+import java.net.UnknownHostException;
 import java.util.concurrent.TimeUnit;
 import okhttp3.OkHttpClient;
 
@@ -61,10 +64,27 @@ public class QuoteRepositoryImpl implements QuoteRepository {
                 
                 if (quote != null && !quote.trim().isEmpty()) {
                     return quote + " - " + author;
+                } else {
+                    Log.w(TAG, "Получена пустая цитата из API");
+                }
+            } else {
+                // Обработка HTTP ошибок
+                if (response.code() >= 400 && response.code() < 500) {
+                    Log.e(TAG, "Ошибка клиента: HTTP " + response.code());
+                } else if (response.code() >= 500) {
+                    Log.e(TAG, "Ошибка сервера: HTTP " + response.code());
+                } else {
+                    Log.e(TAG, "Неуспешный ответ: HTTP " + response.code());
                 }
             }
+        } catch (SocketTimeoutException e) {
+            Log.e(TAG, "Таймаут при подключении к API", e);
+        } catch (UnknownHostException e) {
+            Log.e(TAG, "Нет подключения к интернету", e);
+        } catch (IOException e) {
+            Log.e(TAG, "Ошибка сети при получении цитаты", e);
         } catch (Exception e) {
-            Log.e(TAG, "Ошибка при получении цитаты из API", e);
+            Log.e(TAG, "Неожиданная ошибка при получении цитаты из API", e);
         }
         
         // Fallback: возвращаем случайную локальную цитату

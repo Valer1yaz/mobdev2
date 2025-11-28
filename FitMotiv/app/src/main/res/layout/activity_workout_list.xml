@@ -20,6 +20,18 @@
         android:textStyle="bold"
         android:layout_marginBottom="16dp" />
 
+    <!-- Добавлен TextView для пустого состояния -->
+    <TextView
+        android:id="@+id/tvEmpty"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Тренировок пока нет"
+        android:textSize="18sp"
+        android:textAlignment="center"
+        android:visibility="gone"
+        android:layout_marginTop="32dp"
+        android:layout_marginBottom="16dp" />
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvWorkouts"
         android:layout_width="match_parent"
@@ -27,4 +39,3 @@
         android:layout_weight="1" />
 
 </LinearLayout>
-

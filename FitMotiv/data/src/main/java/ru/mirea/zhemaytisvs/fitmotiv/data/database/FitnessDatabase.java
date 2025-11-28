@@ -13,8 +13,9 @@ public abstract class FitnessDatabase extends RoomDatabase {
     private static volatile FitnessDatabase INSTANCE;
     
     public abstract WorkoutDao workoutDao();
-    
+
     public static FitnessDatabase getDatabase(final Context context) {
+
         if (INSTANCE == null) {
             synchronized (FitnessDatabase.class) {
                 if (INSTANCE == null) {
@@ -23,7 +24,7 @@ public abstract class FitnessDatabase extends RoomDatabase {
                             FitnessDatabase.class,
                             "fitness_database"
                     )
-                    .fallbackToDestructiveMigration() // Для упрощения - в продакшене нужна миграция
+                    .fallbackToDestructiveMigration() // в продакшене нужна миграция
                     .build();
                 }
             }

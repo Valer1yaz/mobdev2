@@ -8,4 +8,5 @@ public interface WorkoutRepository {
     List<Workout> getWorkoutHistory(String userId);
     Workout getWorkoutById(String id, String userId);
     List<Workout> getWorkoutsByType(Workout.WorkoutType type, String userId);
+    void deleteWorkout(String id, String userId);
 }

@@ -53,7 +53,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         setContentView(R.layout.activity_main);
 
         // ПЕРВОЕ: Инициализация ViewModel (должна быть до использования)
@@ -65,11 +64,13 @@ public class MainActivity extends AppCompatActivity {
         // ТРЕТЬЕ: Инициализация UI и наблюдателей
         initializeUI();
         setupLiveDataObservers();
-        loadInitialData();
-        setupEventListeners();
 
-        // ЧЕТВЕРТОЕ: Настройка режима пользователя
-        setupUserMode();
+        // ЧЕТВЕРТОЕ: Задержка для инициализации пользователя перед setupUserMode
+        new android.os.Handler().postDelayed(() -> {
+            loadInitialData();
+            setupEventListeners();
+            setupUserMode(); // Вызываем здесь с задержкой
+        }, 100);
     }
 
     @Override
@@ -96,9 +97,11 @@ public class MainActivity extends AppCompatActivity {
 
             if (isGuest) {
                 currentUser = User.createGuestUser();
+                Log.d("MainActivity", "Guest user initialized");
             } else {
                 // Для зарегистрированных пользователей загружаем через ViewModel
                 viewModel.loadCurrentUser();
+                Log.d("MainActivity", "Loading registered user from ViewModel");
             }
         } else {
             // Если Intent пустой, проверяем аутентификацию
@@ -126,12 +129,21 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    // ИСПРАВЛЕННЫЙ МЕТОД: Настройка режима пользователя
+    // МЕТОД: Настройка режима пользователя
     private void setupUserMode() {
-        // ДОБАВЛЕНА ПРОВЕРКА НА NULL
+        Log.d("MainActivity", "setupUserMode called, currentUser: " + (currentUser != null ? currentUser.getUid() : "null"));
+
         if (currentUser == null) {
-            Log.e("MainActivity", "Current user is null in setupUserMode");
-            return;
+            Log.e("MainActivity", "Current user is null - delaying setup");
+            // Попробуем получить пользователя из ViewModel
+            User vmUser = viewModel.getCurrentUserLiveData().getValue();
+            if (vmUser != null) {
+                currentUser = vmUser;
+                Log.d("MainActivity", "Retrieved user from ViewModel: " + currentUser.getUid());
+            } else {
+                Log.e("MainActivity", "Cannot setup user mode - user is null");
+                return;
+            }
         }
 
         if (currentUser.isGuest()) {
@@ -150,7 +162,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    // ДОБАВЛЕННЫЙ МЕТОД: Настройка гостевого режима
+    // МЕТОД: Настройка гостевого режима
     private void setupGuestMode() {
         // Отключаем или скрываем функционал для гостя
         if (btnAddWorkout != null) {
@@ -176,7 +188,7 @@ public class MainActivity extends AppCompatActivity {
                 Toast.LENGTH_LONG).show();
     }
 
-    // ДОБАВЛЕННЫЙ МЕТОД: Настройка полного режима
+    // МЕТОД: Настройка полного режима
     private void setupFullMode() {
         // Весь функционал доступен
         if (btnAddWorkout != null) {
@@ -258,8 +270,12 @@ public class MainActivity extends AppCompatActivity {
         viewModel.getCurrentUserLiveData().observe(this, new Observer<User>() {
             @Override
             public void onChanged(User user) {
+                Log.d("MainActivity", "User LiveData updated: " + (user != null ? user.getUid() : "null"));
                 if (user != null) {
                     currentUser = user;
+                    // ВЫЗЫВАЕМ setupUserMode() ЗДЕСЬ, когда пользователь точно загружен
+                    setupUserMode();
+
                     if (tvUserInfo != null) {
                         String userInfo = user.isGuest() ?
                                 "Гостевой режим" :
@@ -273,6 +289,8 @@ public class MainActivity extends AppCompatActivity {
                         viewModel.loadGoals();
                         viewModel.checkGoalProgress();
                     }
+                } else {
+                    Log.e("MainActivity", "User LiveData returned null");
                 }
             }
         });
@@ -354,6 +372,11 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 Intent intent = new Intent(MainActivity.this, WorkoutListActivity.class);
+                // ДОБАВЛЕНО: Передаем информацию о пользователе
+                User currentUser = viewModel.getCurrentUserLiveData().getValue();
+                if (currentUser != null) {
+                    intent.putExtra("user_id", currentUser.getUid());
+                }
                 startActivity(intent);
             }
         });
@@ -406,7 +429,7 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    // ДОБАВЛЕННЫЙ МЕТОД: Выход из аккаунта
+    // МЕТОД: Выход из аккаунта
     private void logout() {
         AuthRepository authRepository = new AuthRepositoryImpl();
         authRepository.logout();
@@ -419,24 +442,34 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void addNewWorkout() {
-        // Проверяем, что пользователь авторизован
-        User user = viewModel.getCurrentUserLiveData().getValue();
+        Log.d("MainActivity", "=== ADD NEW WORKOUT DIALOG REQUESTED ===");
+
+        // Проверяем currentUser и пользователя из ViewModel
+        User user = currentUser;
+        if (user == null) {
+            user = viewModel.getCurrentUserLiveData().getValue();
+            if (user != null) {
+                currentUser = user;
+                Log.d("MainActivity", "Retrieved user from ViewModel for workout: " + user.getUid());
+            }
+        }
+
+        Log.d("MainActivity", "Current user for workout: " + (user != null ? user.getUid() : "null"));
+
         if (user == null || user.isGuest()) {
+            Log.d("MainActivity", "User is guest or null, showing toast");
             showToast("Для добавления тренировки необходимо зарегистрироваться");
             return;
         }
-        
-        // Открываем диалог для добавления тренировки
+
         AddWorkoutDialog dialog = new AddWorkoutDialog();
         dialog.setOnWorkoutAddedListener(new AddWorkoutDialog.OnWorkoutAddedListener() {
             @Override
             public void onWorkoutAdded(Workout workout) {
-                // Добавляем тренировку через ViewModel
+                Log.d("MainActivity", "Workout added via dialog: " + workout.getDescription());
                 viewModel.addWorkout(workout);
                 showToast("Тренировка добавлена!");
-                // Обновляем список тренировок после небольшой задержки
-                rvProgressPhotos.postDelayed(() -> viewModel.loadWorkouts(), 500);
-            }
+                }
         });
         dialog.show(getSupportFragmentManager(), "AddWorkoutDialog");
     }

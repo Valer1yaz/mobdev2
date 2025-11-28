@@ -30,6 +30,14 @@
             android:textSize="14sp"
             android:layout_marginTop="4dp" />
 
+        <TextView
+            android:id="@+id/tvWorkoutDate"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Дата"
+            android:textSize="12sp"
+            android:layout_marginTop="4dp" />
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -37,28 +45,21 @@
             android:layout_marginTop="8dp">
 
             <TextView
-                android:id="@+id/tvWorkoutDate"
+                android:id="@+id/tvWorkoutDuration"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Дата"
+                android:text="Длительность"
                 android:textSize="12sp" />
 
             <TextView
-                android:id="@+id/tvWorkoutDuration"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Длительность"
-                android:textSize="12sp"
-                android:layout_marginStart="8dp" />
-
-            <TextView
                 android:id="@+id/tvWorkoutCalories"
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_weight="1"
                 android:text="Калории"
                 android:textSize="12sp"
-                android:layout_marginStart="8dp" />
+                android:textAlignment="textEnd" />
 
         </LinearLayout>
 

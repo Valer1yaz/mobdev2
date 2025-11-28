@@ -1,10 +1,15 @@
 package ru.mirea.zhemaytisvs.fitmotiv.presentation.viewmodels;
 
 import android.app.Application;
+import android.os.Handler;
+import android.os.Looper;
+import android.util.Log;
+
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
+import androidx.lifecycle.Observer;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -30,6 +35,7 @@ public class MainViewModel extends AndroidViewModel {
     // Use Cases
     private TrackWorkoutUseCase trackWorkoutUseCase;
     private GetWorkoutHistoryUseCase getWorkoutHistoryUseCase;
+    private DeleteWorkoutUseCase deleteWorkoutUseCase;
     private GetMotivationalQuoteUseCase getMotivationalQuoteUseCase;
     private SetGoalUseCase setGoalUseCase;
     private GetProgressPhotosUseCase getProgressPhotosUseCase;
@@ -84,6 +90,7 @@ public class MainViewModel extends AndroidViewModel {
         
         trackWorkoutUseCase = new TrackWorkoutUseCase(workoutRepository);
         getWorkoutHistoryUseCase = new GetWorkoutHistoryUseCase(workoutRepository);
+        deleteWorkoutUseCase = new DeleteWorkoutUseCase(workoutRepository);
         getMotivationalQuoteUseCase = new GetMotivationalQuoteUseCase(quoteRepository);
         setGoalUseCase = new SetGoalUseCase(userRepository);
         getProgressPhotosUseCase = new GetProgressPhotosUseCase(progressRepository);
@@ -101,6 +108,9 @@ public class MainViewModel extends AndroidViewModel {
         currentUserLiveData = new MutableLiveData<>();
         workoutStatisticsLiveData = new MutableLiveData<>();
         exerciseAnalysisLiveData = new MutableLiveData<>();
+
+        // Инициализируем пустым списком
+        workoutsLiveData.setValue(new ArrayList<>());
     }
     
     // Методы для загрузки данных
@@ -115,32 +125,48 @@ public class MainViewModel extends AndroidViewModel {
             }
         });
     }
-    
+
     public void loadWorkouts() {
-        // Получаем userId текущего пользователя
+        Log.d("MainViewModel", "=== LOAD WORKOUTS CALLED ===");
+
         User currentUser = currentUserLiveData.getValue();
+        Log.d("MainViewModel", "Current user: " + (currentUser != null ? currentUser.getUid() : "null"));
+
         if (currentUser == null || currentUser.isGuest()) {
-            // Для гостей не загружаем тренировки
+            Log.d("MainViewModel", "User is null or guest - returning empty list");
             workoutsLiveData.postValue(new ArrayList<>());
             return;
         }
-        
+
         String userId = currentUser.getUid();
-        
-        // Загружаем тренировки из БД
+        Log.d("MainViewModel", "Loading workouts for user: " + userId);
+
         executorService.execute(() -> {
+            Log.d("MainViewModel", "Starting background load for user: " + userId);
             try {
                 List<Workout> workouts = getWorkoutHistoryUseCase.execute(userId);
-                workoutsLiveData.postValue(workouts != null ? workouts : new ArrayList<>());
-                updateWorkoutStatistics(workouts != null ? workouts : new ArrayList<>());
+                Log.d("MainViewModel", "UseCase returned " + (workouts != null ? workouts.size() : 0) + " workouts");
+
+                // ДОБАВЛЕНО: Проверка на главном потоке перед обновлением UI
+                runOnUiThread(() -> {
+                    workoutsLiveData.postValue(workouts != null ? workouts : new ArrayList<>());
+                    updateWorkoutStatistics(workouts != null ? workouts : new ArrayList<>());
+                });
+
             } catch (Exception e) {
-                // Обработка ошибки БД - отправляем пустой список
-                workoutsLiveData.postValue(new ArrayList<>());
-                updateWorkoutStatistics(new ArrayList<>());
+                Log.e("MainViewModel", "Error in loadWorkouts", e);
+                runOnUiThread(() -> {
+                    workoutsLiveData.postValue(new ArrayList<>());
+                    updateWorkoutStatistics(new ArrayList<>());
+                });
             }
         });
     }
-    
+
+    // Вспомогательный метод для выполнения на главном потоке
+    private void runOnUiThread(Runnable action) {
+        new Handler(Looper.getMainLooper()).post(action);
+    }
     public void loadProgressPhotos() {
         executorService.execute(() -> {
             try {
@@ -325,6 +351,35 @@ public class MainViewModel extends AndroidViewModel {
                 checkGoalProgress();
             } catch (Exception e) {
                 android.util.Log.e("MainViewModel", "Error adding workout", e);
+            }
+        });
+    }
+    
+    public void deleteWorkout(String workoutId) {
+        executorService.execute(() -> {
+            try {
+                // Получаем userId текущего пользователя
+                User currentUser = currentUserLiveData.getValue();
+                if (currentUser == null || currentUser.isGuest()) {
+                    android.util.Log.e("MainViewModel", "Cannot delete workout: user is null or guest");
+                    return; // Гости не могут удалять тренировки
+                }
+                
+                String userId = currentUser.getUid();
+                if (userId == null || userId.isEmpty()) {
+                    android.util.Log.e("MainViewModel", "Cannot delete workout: userId is null or empty");
+                    return;
+                }
+                
+                deleteWorkoutUseCase.execute(workoutId, userId);
+                android.util.Log.d("MainViewModel", "Workout deleted for user: " + userId);
+                
+                // Обновляем список тренировок
+                loadWorkouts();
+                // Проверяем прогресс выполнения цели после удаления тренировки
+                checkGoalProgress();
+            } catch (Exception e) {
+                android.util.Log.e("MainViewModel", "Error deleting workout", e);
             }
         });
     }

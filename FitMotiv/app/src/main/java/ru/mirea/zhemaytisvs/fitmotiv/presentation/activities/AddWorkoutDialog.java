@@ -3,6 +3,7 @@ package ru.mirea.zhemaytisvs.fitmotiv.presentation.activities;
 import android.app.Dialog;
 import android.content.Context;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.view.Window;
 import android.widget.ArrayAdapter;
@@ -56,12 +57,19 @@ public class AddWorkoutDialog extends DialogFragment {
         btnSave.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                Log.d("AddWorkoutDialog", "Save button clicked");
                 if (validateInput()) {
                     Workout workout = createWorkout();
+                    Log.d("AddWorkoutDialog", "Workout created: " + workout.getType() + ", " + workout.getDescription());
                     if (listener != null) {
                         listener.onWorkoutAdded(workout);
+                        Log.d("AddWorkoutDialog", "Listener called");
+                    } else {
+                        Log.e("AddWorkoutDialog", "Listener is null!");
                     }
                     dismiss();
+                } else {
+                    Log.d("AddWorkoutDialog", "Validation failed");
                 }
             }
         });
