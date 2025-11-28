@@ -60,3 +60,24 @@
 ----------
 
 Задание: Реализовать получение сущностей из сети с помощью Retrofit, обработать возможные ошибки, реализовать отображение изображений с помощью Picasso, Coil или Glide
+
+Было реализовано получение данных о мотивационных цитатах из внешнего API с использованием Retrofit, настроен сетевой слой с обработкой ошибок и асинхронными запросами к API сервису
+
+Интегрирована библиотека Glide для загрузки и отображения изображений различных видов тренировок в RecyclerView.
+```
+String imageName = workout.getImageName();
+int resId = holder.itemView.getContext().getResources()
+        .getIdentifier(imageName, "drawable", holder.itemView.getContext().getPackageName());
+
+if (resId != 0) {
+    Glide.with(holder.itemView.getContext())
+            .load(resId)
+            .placeholder(R.drawable.cat_default)
+            .error(R.drawable.workout_default)
+            .into(holder.workoutImage);
+}
+```
+
+Добавлен функционал создания новых записей о тренировках.
+
+
