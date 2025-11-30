@@ -22,10 +22,16 @@ dependencies {
     implementation ("androidx.fragment:fragment:$fragment_version")
 }
 ```
-В главной активности MainActivity реализована проверка состояния savedInstanceState через условие if - фрагмент добавляется только при первоначальном запуске приложения, а не при каждом его пересоздании. 
-Для передачи данных использован объект Bundle, в который помещен номер студента и этот Bundle  установлен в качестве аргументов фрагмента. 
+В главной активности MainActivity реализована проверка состояния savedInstanceState через условие if - фрагмент добавляется только при первоначальном запуске приложения, а не при каждом его пересоздании. Для передачи данных использован объект Bundle, в который помещен номер студента и этот Bundle  установлен в качестве аргументов фрагмента. 
+
+<img width="1341" height="808" alt="image" src="https://github.com/user-attachments/assets/360ac326-3b84-49c6-a475-edfee6af3335" />
+
 Затем создан фрагмент StudentFragment, который в методе onViewCreated с помощью requireArguments() извлекает переданный номер и отображает его в текстовом поле TextView.
 Во фрагмент передан свой номер	по списку.
+
+<img width="1166" height="551" alt="image" src="https://github.com/user-attachments/assets/5c4e412a-2301-4342-ae5b-f1cc292c07ee" />
+
+
 
 -----------
 2 FragmentManagerApp.
