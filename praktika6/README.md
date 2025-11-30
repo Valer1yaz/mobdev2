@@ -16,6 +16,12 @@
 Создан новый модуль "FragmentApp". 
 
 Настроены зависимости в файле build.gradle, где добавлена библиотека androidx.fragment для работы с фрагментами. 
+```
+dependencies {
+    var fragment_version = "1.8.5"
+    implementation ("androidx.fragment:fragment:$fragment_version")
+}
+```
 В главной активности MainActivity реализована проверка состояния savedInstanceState через условие if - фрагмент добавляется только при первоначальном запуске приложения, а не при каждом его пересоздании. 
 Для передачи данных использован объект Bundle, в который помещен номер студента и этот Bundle  установлен в качестве аргументов фрагмента. 
 Затем создан фрагмент StudentFragment, который в методе onViewCreated с помощью requireArguments() извлекает переданный номер и отображает его в текстовом поле TextView.
