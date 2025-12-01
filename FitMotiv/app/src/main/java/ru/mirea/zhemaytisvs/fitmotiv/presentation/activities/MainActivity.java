@@ -42,22 +42,51 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // ПЕРВОЕ: Инициализация ViewModel (должна быть до использования)
+        // ПЕРВОЕ: Инициализация ViewModel
         initializeViewModel();
 
-        // ВТОРОЕ: Получаем пользователя из Intent или проверяем аутентификацию
-        initializeUser();
+        // ВТОРОЕ: Проверяем аутентификацию и перенаправляем если нужно
+        checkAuthenticationAndRedirect();
+    }
 
-        // ТРЕТЬЕ: Инициализация UI и наблюдателей
+    private void checkAuthenticationAndRedirect() {
+        viewModel.getCurrentUserLiveData().observe(this, new Observer<User>() {
+            @Override
+            public void onChanged(User user) {
+                Log.d("MainActivity", "Authentication check - User: " + (user != null ? user.getUid() : "null"));
+
+                if (user == null) {
+                    // Пользователь не аутентифицирован - переходим на LoginActivity
+                    Log.d("MainActivity", "No authenticated user, redirecting to LoginActivity");
+                    redirectToLogin();
+                } else {
+                    // Пользователь аутентифицирован - продолжаем инициализацию
+                    Log.d("MainActivity", "User authenticated: " + user.getUid() + ", proceeding with main screen");
+                    currentUser = user;
+                    completeInitialization();
+                }
+            }
+        });
+
+        // Запускаем загрузку пользователя
+        viewModel.loadCurrentUser();
+    }
+
+    private void completeInitialization() {
+        // Инициализация UI и наблюдателей
         initializeUI();
         setupLiveDataObservers();
 
-        // ЧЕТВЕРТОЕ: Задержка для инициализации пользователя перед setupUserMode
-        new android.os.Handler().postDelayed(() -> {
-            loadInitialData();
-            setupEventListeners();
-            setupUserMode(); // Вызываем здесь с задержкой
-        }, 100);
+        // Загрузка данных
+        loadInitialData();
+        setupEventListeners();
+        setupUserMode();
+    }
+
+    private void redirectToLogin() {
+        Intent intent = new Intent(MainActivity.this, LoginActivity.class);
+        startActivity(intent);
+        finish(); // Закрываем MainActivity чтобы нельзя было вернуться назад
     }
 
     @Override
@@ -302,7 +331,7 @@ public class MainActivity extends AppCompatActivity {
 
     // МЕТОД: Выход из аккаунта
     private void logout() {
-        AuthRepository authRepository = new AuthRepositoryImpl();
+        AuthRepository authRepository = new AuthRepositoryImpl(this);
         authRepository.logout();
 
         Toast.makeText(this, "Вы вышли из аккаунта", Toast.LENGTH_SHORT).show();

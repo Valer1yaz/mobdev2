@@ -58,10 +58,10 @@ public class MainViewModel extends AndroidViewModel {
     }
 
     private void initializeRepositories(Application application) {
-        // Используем Room Database вместо SharedPrefs для тренировок
+        // Передаем Application context в AuthRepositoryImpl
         WorkoutRepository workoutRepository = new WorkoutRepositoryImpl(application);
         QuoteRepository quoteRepository = new QuoteRepositoryImpl();
-        AuthRepository authRepository = new AuthRepositoryImpl();
+        AuthRepository authRepository = new AuthRepositoryImpl(application); // Передаем контекст
 
         trackWorkoutUseCase = new TrackWorkoutUseCase(workoutRepository);
         getWorkoutHistoryUseCase = new GetWorkoutHistoryUseCase(workoutRepository);

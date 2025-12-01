@@ -1,33 +1,61 @@
+// AuthRepositoryImpl.java
 package ru.mirea.zhemaytisvs.fitmotiv.data.repositories;
 
+import android.content.Context;
 import android.util.Log;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.UserProfileChangeRequest;
 
+import ru.mirea.zhemaytisvs.fitmotiv.data.managers.SessionManager;
 import ru.mirea.zhemaytisvs.fitmotiv.domain.entities.User;
 import ru.mirea.zhemaytisvs.fitmotiv.domain.repositories.AuthRepository;
 
 public class AuthRepositoryImpl implements AuthRepository {
     private static final String TAG = "AuthRepositoryImpl";
     private final FirebaseAuth firebaseAuth;
+    private final SessionManager sessionManager;
     private User currentUser;
 
-    public AuthRepositoryImpl() {
+    public AuthRepositoryImpl(Context context) {
         this.firebaseAuth = FirebaseAuth.getInstance();
-        checkCurrentUser();
+        this.sessionManager = new SessionManager(context);
+        restoreUserSession();
     }
 
-    private void checkCurrentUser() {
+    /**
+     * Восстанавливает пользователя из Firebase Auth или сохраненной сессии
+     */
+
+    private void restoreUserSession() {
+        Log.d(TAG, "Attempting to restore user session...");
+
+        // Сначала проверяем Firebase Auth
         FirebaseUser firebaseUser = firebaseAuth.getCurrentUser();
         if (firebaseUser != null) {
+            // Пользователь аутентифицирован через Firebase
             this.currentUser = new User(
                     firebaseUser.getUid(),
                     firebaseUser.getEmail(),
                     firebaseUser.getDisplayName(),
                     false
             );
+            // Сохраняем в сессию
+            sessionManager.saveUserSession(currentUser);
+            Log.d(TAG, "User restored from Firebase Auth: " + currentUser.getUid());
+        } else if (sessionManager.hasSavedSession()) {
+            // Восстанавливаем из сохраненной сессии
+            this.currentUser = sessionManager.getSavedUser();
+            if (currentUser != null && !currentUser.isGuest()) {
+                Log.d(TAG, "User restored from saved session: " + currentUser.getUid());
+            } else if (currentUser != null && currentUser.isGuest()) {
+                Log.d(TAG, "Guest user restored from saved session");
+            } else {
+                Log.d(TAG, "Failed to restore user from saved session");
+            }
+        } else {
+            Log.d(TAG, "No user session to restore");
         }
     }
 
@@ -44,7 +72,9 @@ public class AuthRepositoryImpl implements AuthRepository {
                                     firebaseUser.getDisplayName(),
                                     false
                             );
-                            Log.d(TAG, "User logged in: " + currentUser.getEmail());
+                            // Сохраняем сессию
+                            sessionManager.saveUserSession(currentUser);
+                            Log.d(TAG, "User logged in and session saved: " + currentUser.getEmail());
                             callback.onSuccess(currentUser);
                         }
                     } else {
@@ -77,7 +107,9 @@ public class AuthRepositoryImpl implements AuthRepository {
                                                     displayName,
                                                     false
                                             );
-                                            Log.d(TAG, "User registered: " + currentUser.getEmail());
+                                            // Сохраняем сессию
+                                            sessionManager.saveUserSession(currentUser);
+                                            Log.d(TAG, "User registered and session saved: " + currentUser.getEmail());
                                             callback.onSuccess(currentUser);
                                         } else {
                                             callback.onError("Failed to set display name");
@@ -96,15 +128,20 @@ public class AuthRepositoryImpl implements AuthRepository {
     @Override
     public void loginAsGuest(AuthCallback callback) {
         currentUser = User.createGuestUser();
-        Log.d(TAG, "Guest user logged in");
+        // Сохраняем гостевую сессию
+        sessionManager.saveUserSession(currentUser);
+        Log.d(TAG, "Guest user logged in and session saved");
         callback.onSuccess(currentUser);
     }
 
     @Override
     public void logout() {
+        // Выходим из Firebase Auth
         firebaseAuth.signOut();
+        // Очищаем сессию
+        sessionManager.clearSession();
         currentUser = null;
-        Log.d(TAG, "User logged out");
+        Log.d(TAG, "User logged out and session cleared");
     }
 
     @Override

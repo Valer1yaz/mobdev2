@@ -2,6 +2,7 @@ package ru.mirea.zhemaytisvs.fitmotiv.presentation.activities;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -21,7 +22,8 @@ import ru.mirea.zhemaytisvs.fitmotiv.data.repositories.AuthRepositoryImpl;
 
 public class LoginActivity extends AppCompatActivity {
 
-    private EditText etEmail, etPassword, etDisplayName;
+    private EditText etEmail, etPassword;
+    private EditText etDisplayName, etRegisterEmail, etRegisterPassword;
     private Button btnLogin, btnRegister, btnGuest;
     private ProgressBar progressBar;
     private TextView tvSwitchToRegister, tvSwitchToLogin;
@@ -30,6 +32,7 @@ public class LoginActivity extends AppCompatActivity {
     private LoginUseCase loginUseCase;
     private RegisterUseCase registerUseCase;
     private LoginAsGuestUseCase loginAsGuestUseCase;
+    private AuthRepository authRepository;
 
     private boolean isRegisterMode = false;
 
@@ -41,19 +44,47 @@ public class LoginActivity extends AppCompatActivity {
         initializeDependencies();
         initializeUI();
         setupClickListeners();
+
+        // Проверяем, не вошел ли уже пользователь
+        checkExistingSession();
     }
 
     private void initializeDependencies() {
-        AuthRepository authRepository = new AuthRepositoryImpl();
+        // Инициализируем authRepository как поле класса
+        authRepository = new AuthRepositoryImpl(this);
         loginUseCase = new LoginUseCase(authRepository);
         registerUseCase = new RegisterUseCase(authRepository);
         loginAsGuestUseCase = new LoginAsGuestUseCase(authRepository);
     }
 
+    private void checkExistingSession() {
+        // Теперь authRepository доступен как поле класса
+        User currentUser = authRepository.getCurrentUser();
+        if (currentUser != null && !currentUser.isGuest()) {
+            // Пользователь уже вошел, переходим на MainActivity
+            Log.d("LoginActivity", "User already logged in, redirecting to MainActivity");
+            navigateToMainActivity(currentUser);
+        } else {
+            Log.d("LoginActivity", "No existing session found, showing login form");
+        }
+    }
+
+    private void navigateToMainActivity(User user) {
+        Intent intent = new Intent(LoginActivity.this, MainActivity.class);
+        // Очищаем историю стека чтобы нельзя было вернуться к LoginActivity
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
+    }
+
     private void initializeUI() {
         etEmail = findViewById(R.id.etEmail);
         etPassword = findViewById(R.id.etPassword);
+
         etDisplayName = findViewById(R.id.etDisplayName);
+        etRegisterEmail = findViewById(R.id.etRegisterEmail);
+        etRegisterPassword = findViewById(R.id.etRegisterPassword);
+
         btnLogin = findViewById(R.id.btnLogin);
         btnRegister = findViewById(R.id.btnRegister);
         btnGuest = findViewById(R.id.btnGuest);
@@ -118,8 +149,8 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void register() {
-        String email = etEmail.getText().toString().trim();
-        String password = etPassword.getText().toString().trim();
+        String email = etRegisterEmail.getText().toString().trim();
+        String password = etRegisterPassword.getText().toString().trim();
         String displayName = etDisplayName.getText().toString().trim();
 
         if (email.isEmpty() || password.isEmpty() || displayName.isEmpty()) {
@@ -172,15 +203,5 @@ public class LoginActivity extends AppCompatActivity {
         btnLogin.setEnabled(!isLoading);
         btnRegister.setEnabled(!isLoading);
         btnGuest.setEnabled(!isLoading);
-    }
-
-    private void navigateToMainActivity(User user) {
-        Intent intent = new Intent(this, MainActivity.class);
-        intent.putExtra("user", user.getUid());
-        intent.putExtra("isGuest", user.isGuest());
-        intent.putExtra("userEmail", user.getEmail());
-        intent.putExtra("userDisplayName", user.getDisplayName());
-        startActivity(intent);
-        finish();
     }
 }
