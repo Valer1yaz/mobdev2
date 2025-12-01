@@ -41,4 +41,9 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
+
+
+    var fragment_version = "1.8.5"
+    implementation ("androidx.fragment:fragment:$fragment_version")
+    implementation ("com.google.android.material:material:1.9.0")
 }
