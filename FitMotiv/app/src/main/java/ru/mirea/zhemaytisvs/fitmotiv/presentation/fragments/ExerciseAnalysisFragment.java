@@ -37,9 +37,9 @@ import ru.mirea.zhemaytisvs.fitmotiv.presentation.ml.SimpleImageClassifier;
 public class ExerciseAnalysisFragment extends Fragment {
 
     private static final int PICK_IMAGE_REQUEST = 1;
+    private static final int TAKE_PHOTO_REQUEST = 2;
 
-    private ImageClassifierHelper imageClassifier;
-    private SimpleImageClassifier simpleClassifier;
+    private SimpleImageClassifier imageClassifier;
     private ExecutorService executorService;
 
     private ImageView ivExercise;
@@ -67,16 +67,27 @@ public class ExerciseAnalysisFragment extends Fragment {
 
     private void initializeClassifier() {
         try {
-            // Пробуем использовать реальный классификатор
-            imageClassifier = new ImageClassifierHelper(requireContext());
-            Log.d("ExerciseAnalysis", "TensorFlow Lite инициализирован");
+            imageClassifier = new SimpleImageClassifier(requireContext());
+
+            // Проверяем, загружена ли модель
+            if (imageClassifier.isModelLoaded()) {
+                Log.d("ExerciseAnalysis", "TensorFlow Lite модель успешно загружена");
+                if (tvResult != null) {
+                    tvResult.setText("Модель готова к анализу. Выберите изображение.");
+                }
+            } else {
+                Log.w("ExerciseAnalysis", "Используется упрощенный классификатор");
+                if (tvResult != null) {
+                    tvResult.setText("Демонстрационный режим анализа");
+                }
+            }
         } catch (Exception e) {
-            Log.e("ExerciseAnalysis", "TensorFlow Lite ошибка, используем упрощенный классификатор", e);
-            simpleClassifier = new SimpleImageClassifier(requireContext());
+            Log.e("ExerciseAnalysis", "Ошибка инициализации классификатора", e);
             if (tvResult != null) {
-                tvResult.setText("Используется демонстрационный режим анализа");
+                tvResult.setText("Ошибка загрузки модели анализа");
             }
         }
+
         executorService = Executors.newSingleThreadExecutor();
     }
 
@@ -89,18 +100,13 @@ public class ExerciseAnalysisFragment extends Fragment {
         btnBack = view.findViewById(R.id.btnBack);
         progressBar = view.findViewById(R.id.progressBar);
 
-        // Если нет кнопки для фото, скрываем её
+        // Проверка доступности камеры
         if (btnTakePhoto != null) {
-            // Проверяем, есть ли камера на устройстве
-            try {
-                Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-                if (cameraIntent.resolveActivity(requireContext().getPackageManager()) != null) {
-                    btnTakePhoto.setVisibility(View.VISIBLE);
-                    btnTakePhoto.setOnClickListener(v -> takePhoto());
-                } else {
-                    btnTakePhoto.setVisibility(View.GONE);
-                }
-            } catch (Exception e) {
+            Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+            if (cameraIntent.resolveActivity(requireContext().getPackageManager()) != null) {
+                btnTakePhoto.setVisibility(View.VISIBLE);
+                btnTakePhoto.setOnClickListener(v -> takePhoto());
+            } else {
                 btnTakePhoto.setVisibility(View.GONE);
             }
         }
@@ -110,7 +116,7 @@ public class ExerciseAnalysisFragment extends Fragment {
             btnBack.setOnClickListener(v -> Navigation.findNavController(v).navigateUp());
         }
 
-        // Устанавливаем placeholder изображение
+        // Placeholder изображение
         Glide.with(this)
                 .load(R.drawable.ic_placeholder_image)
                 .transition(DrawableTransitionOptions.withCrossFade())
@@ -131,7 +137,7 @@ public class ExerciseAnalysisFragment extends Fragment {
     private void takePhoto() {
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         if (takePictureIntent.resolveActivity(requireContext().getPackageManager()) != null) {
-            startActivityForResult(takePictureIntent, 2);
+            startActivityForResult(takePictureIntent, TAKE_PHOTO_REQUEST);
         } else {
             Toast.makeText(requireContext(), "Камера не найдена", Toast.LENGTH_SHORT).show();
         }
@@ -143,23 +149,26 @@ public class ExerciseAnalysisFragment extends Fragment {
             return;
         }
 
+        if (selectedBitmap == null || selectedBitmap.getWidth() < 100 || selectedBitmap.getHeight() < 100) {
+            tvResult.setText("Изображение слишком маленькое. Выберите фото большего размера.");
+            return;
+        }
+
+        if (imageClassifier == null) {
+            tvResult.setText("Классификатор не инициализирован");
+            return;
+        }
+
         showLoading(true);
 
         executorService.execute(() -> {
             try {
-                List<?> results;
-
-                if (imageClassifier != null) {
-                    results = imageClassifier.classifyImage(selectedBitmap);
-                } else if (simpleClassifier != null) {
-                    results = simpleClassifier.classifyImage(selectedBitmap);
-                } else {
-                    results = java.util.Collections.emptyList();
-                }
+                List<ImageClassifierHelper.ExerciseClassification> results =
+                        imageClassifier.classifyImage(selectedBitmap);
 
                 requireActivity().runOnUiThread(() -> {
                     showLoading(false);
-                    displayResults((List<ImageClassifierHelper.ExerciseClassification>) results);
+                    displayResults(results);
                 });
 
             } catch (Exception e) {
@@ -179,7 +188,14 @@ public class ExerciseAnalysisFragment extends Fragment {
         }
 
         StringBuilder resultText = new StringBuilder();
-        resultText.append("🎯 Результаты анализа:\n\n");
+
+        if (imageClassifier.isModelLoaded()) {
+            resultText.append("✅ Анализ выполнен моделью ИИ\n\n");
+        } else {
+            resultText.append("ℹ️ Демонстрационный режим\n\n");
+        }
+
+        resultText.append("🎯 Результаты:\n\n");
 
         for (int i = 0; i < Math.min(3, results.size()); i++) {
             ImageClassifierHelper.ExerciseClassification classification = results.get(i);
@@ -207,23 +223,37 @@ public class ExerciseAnalysisFragment extends Fragment {
     private String formatExerciseLabel(String label) {
         if (label == null) return "Неизвестно";
 
-        String lowerLabel = label.toLowerCase();
+        // Преобразуем английские названия в русские
+        String lowerLabel = label.toLowerCase().trim();
         switch (lowerLabel) {
             case "pushup":
             case "push_up":
+            case "push-ups":
                 return "Отжимания";
             case "squat":
+            case "squats":
                 return "Приседания";
             case "plank":
                 return "Планка";
             case "running":
+            case "run":
                 return "Бег";
             case "yoga":
                 return "Йога";
             case "swimming":
+            case "swim":
                 return "Плавание";
             case "cycling":
+            case "bicycle":
                 return "Велосипед";
+            case "lunges":
+                return "Выпады";
+            case "situp":
+            case "sit-ups":
+                return "Скручивания";
+            case "pullup":
+            case "pull-ups":
+                return "Подтягивания";
             default:
                 return label;
         }
@@ -232,23 +262,36 @@ public class ExerciseAnalysisFragment extends Fragment {
     private String getExerciseAdvice(String label) {
         if (label == null) return "Выполняйте упражнение с правильной техникой";
 
-        String lowerLabel = label.toLowerCase();
+        String lowerLabel = label.toLowerCase().trim();
         switch (lowerLabel) {
             case "pushup":
             case "push_up":
+            case "push-ups":
                 return "Следите за прямой спиной и полным разгибанием рук";
             case "squat":
+            case "squats":
                 return "Колени не должны выходить за носки, спина прямая";
             case "plank":
                 return "Держите тело прямым, не прогибайте поясницу";
             case "running":
+            case "run":
                 return "Контролируйте дыхание и темп";
             case "yoga":
                 return "Сосредоточьтесь на дыхании и балансе";
             case "swimming":
+            case "swim":
                 return "Следите за техникой гребка и дыханием";
             case "cycling":
+            case "bicycle":
                 return "Регулируйте сопротивление и следите за осанкой";
+            case "lunges":
+                return "Колено не должно касаться пола, спина прямая";
+            case "situp":
+            case "sit-ups":
+                return "Не тяните голову руками, работайте мышцами пресса";
+            case "pullup":
+            case "pull-ups":
+                return "Полное разгибание рук в нижней точке";
             default:
                 return "Выполняйте упражнение с правильной техникой";
         }
@@ -275,21 +318,18 @@ public class ExerciseAnalysisFragment extends Fragment {
         super.onActivityResult(requestCode, resultCode, data);
 
         if (resultCode == getActivity().RESULT_OK && data != null) {
+            try {
+                if (requestCode == PICK_IMAGE_REQUEST) {
+                    // Загрузка изображения из галереи
+                    selectedImageUri = data.getData();
 
-            if (requestCode == PICK_IMAGE_REQUEST) {
-                // Загрузка изображения из галереи
-                selectedImageUri = data.getData();
-
-                if (selectedImageUri != null) {
-                    try {
-                        // Загружаем изображение
-                        InputStream inputStream = requireContext().getContentResolver()
-                                .openInputStream(selectedImageUri);
-
+                    if (selectedImageUri != null) {
                         // Оптимизируем для анализа
                         BitmapFactory.Options options = new BitmapFactory.Options();
-                        options.inSampleSize = 2; // Уменьшаем размер
+                        options.inSampleSize = 4; // Уменьшаем размер для экономии памяти
 
+                        InputStream inputStream = requireContext().getContentResolver()
+                                .openInputStream(selectedImageUri);
                         selectedBitmap = BitmapFactory.decodeStream(inputStream, null, options);
 
                         if (inputStream != null) {
@@ -305,22 +345,22 @@ public class ExerciseAnalysisFragment extends Fragment {
 
                             tvResult.setText("Изображение загружено. Нажмите 'Анализировать'");
                         }
-
-                    } catch (IOException e) {
-                        tvResult.setText("Ошибка загрузки изображения");
+                    }
+                } else if (requestCode == TAKE_PHOTO_REQUEST) {
+                    // Фото с камеры
+                    Bundle extras = data.getExtras();
+                    if (extras != null) {
+                        Bitmap photo = (Bitmap) extras.get("data");
+                        if (photo != null) {
+                            selectedBitmap = photo;
+                            ivExercise.setImageBitmap(selectedBitmap);
+                            tvResult.setText("Фото сделано. Нажмите 'Анализировать'");
+                        }
                     }
                 }
-
-            } else if (requestCode == 2) { // Фото с камеры
-                Bundle extras = data.getExtras();
-                if (extras != null) {
-                    selectedBitmap = (Bitmap) extras.get("data");
-
-                    if (selectedBitmap != null) {
-                        ivExercise.setImageBitmap(selectedBitmap);
-                        tvResult.setText("Фото сделано. Нажмите 'Анализировать'");
-                    }
-                }
+            } catch (IOException e) {
+                tvResult.setText("Ошибка загрузки изображения");
+                Log.e("ExerciseAnalysis", "Error loading image", e);
             }
         }
     }

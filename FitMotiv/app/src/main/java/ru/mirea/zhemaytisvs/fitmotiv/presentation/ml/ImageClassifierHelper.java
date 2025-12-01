@@ -12,14 +12,13 @@ import org.tensorflow.lite.support.common.ops.NormalizeOp;
 import org.tensorflow.lite.support.image.ImageProcessor;
 import org.tensorflow.lite.support.image.TensorImage;
 import org.tensorflow.lite.support.image.ops.ResizeOp;
+import org.tensorflow.lite.support.image.ops.Rot90Op;
 import org.tensorflow.lite.support.tensorbuffer.TensorBuffer;
 
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
-import java.nio.MappedByteBuffer;
-import java.nio.channels.FileChannel;
+import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -28,25 +27,33 @@ import java.util.PriorityQueue;
 
 public class ImageClassifierHelper {
 
-    private static final String TAG = "ImageClassifier";
-    private static final String MODEL_FILE = "mobilenet_v1_1.0_224_quantized.tflite";
+    private static final String TAG = "ImageClassifierHelper";
+    private static final String MODEL_FILE = "exercise_model.tflite";
     private static final String LABEL_FILE = "labels.txt";
 
-    private static final int IMAGE_SIZE = 224;
-    private static final int IMAGE_MEAN = 0;
-    private static final int IMAGE_STD = 255;
+    // Размеры для модели (стандарт для MobileNet)
+    private static final int IMAGE_WIDTH = 224;
+    private static final int IMAGE_HEIGHT = 224;
+    private static final int CHANNELS = 3;
+
+    // Нормализация для модели
+    private static final float IMAGE_MEAN = 127.5f;
+    private static final float IMAGE_STD = 127.5f;
+
+    // Параметры классификации
     private static final int MAX_RESULTS = 5;
-    private static final float THRESHOLD = 0.1f;
+    private static final float CONFIDENCE_THRESHOLD = 0.3f;
 
     private Interpreter interpreter;
     private List<String> labels;
     private ImageProcessor imageProcessor;
     private TensorImage inputImageBuffer;
+    private ByteBuffer inputBuffer;
 
     public ImageClassifierHelper(Context context) throws IOException {
         try {
             // Загрузка модели
-            MappedByteBuffer modelBuffer = loadModelFile(context);
+            ByteBuffer modelBuffer = loadModelFile(context);
 
             // Создание интерпретатора
             Interpreter.Options options = new Interpreter.Options();
@@ -56,112 +63,83 @@ public class ImageClassifierHelper {
             // Загрузка меток
             labels = FileUtil.loadLabels(context, LABEL_FILE);
 
-            // Создание процессора изображений для модели MobileNet
+            // Создание процессора изображений
             imageProcessor = new ImageProcessor.Builder()
-                    .add(new ResizeOp(IMAGE_SIZE, IMAGE_SIZE, ResizeOp.ResizeMethod.BILINEAR))
-                    .add(new NormalizeOp(IMAGE_MEAN, IMAGE_STD))
+                    .add(new ResizeOp(IMAGE_WIDTH, IMAGE_HEIGHT, ResizeOp.ResizeMethod.BILINEAR))
+                    //.add(new NormalizeOp(IMAGE_MEAN, IMAGE_STD))
                     .build();
 
-            // Создание буфера для входного изображения
-            inputImageBuffer = new TensorImage(DataType.FLOAT32);
+            // Подготовка буфера для входных данных
+            inputImageBuffer = new TensorImage(DataType.UINT8);
+            inputBuffer = ByteBuffer.allocateDirect(IMAGE_WIDTH * IMAGE_HEIGHT * CHANNELS * 4);
+            inputBuffer.order(ByteOrder.nativeOrder());
 
             Log.d(TAG, "Model loaded successfully. Labels count: " + labels.size());
 
         } catch (IOException e) {
             Log.e(TAG, "Error loading model or labels", e);
             throw e;
-        }
-    }
-
-    // Исправленный метод загрузки модели
-    private MappedByteBuffer loadModelFile(Context context) throws IOException {
-        AssetManager assetManager = context.getAssets();
-
-        try (InputStream inputStream = assetManager.open(MODEL_FILE);
-             FileInputStream fileInputStream = new FileInputStream(inputStream.toString())) {
-
-            FileChannel fileChannel = fileInputStream.getChannel();
-            return fileChannel.map(FileChannel.MapMode.READ_ONLY, 0, fileChannel.size());
-
         } catch (Exception e) {
-            // Альтернативный способ загрузки
-            Log.w(TAG, "Standard method failed, trying alternative...", e);
-            return loadModelFileAlternative(context);
+            Log.e(TAG, "Unexpected error during initialization", e);
+            throw new IOException("Failed to initialize TensorFlow Lite", e);
         }
     }
 
-    // Альтернативный метод загрузки модели
-    private MappedByteBuffer loadModelFileAlternative(Context context) throws IOException {
-        AssetManager assetManager = context.getAssets();
-
-        try (InputStream inputStream = assetManager.open(MODEL_FILE)) {
-            // Читаем все байты
-            byte[] modelData = new byte[inputStream.available()];
-            inputStream.read(modelData);
-
-            // Создаем ByteBuffer из массива байтов
-            ByteBuffer buffer = ByteBuffer.allocateDirect(modelData.length);
-            buffer.put(modelData);
-            buffer.rewind();
-
-            // Преобразуем в MappedByteBuffer
-            // Вместо MappedByteBuffer используем ByteBuffer напрямую
-            // TensorFlow Lite может работать с ByteBuffer
-            java.nio.ByteBuffer byteBuffer = java.nio.ByteBuffer.allocateDirect(modelData.length);
-            byteBuffer.put(modelData);
-            byteBuffer.rewind();
-
-            // Для совместимости с методом map
-            return (MappedByteBuffer) byteBuffer;
-        }
-    }
-
-    // Простой метод загрузки без FileChannel
-    private MappedByteBuffer loadModelFileSimple(Context context) throws IOException {
+    private ByteBuffer loadModelFile(Context context) throws IOException {
         AssetManager assetManager = context.getAssets();
 
         try (InputStream inputStream = assetManager.open(MODEL_FILE)) {
             // Читаем все байты модели
-            int fileSize = inputStream.available();
-            byte[] modelData = new byte[fileSize];
-            inputStream.read(modelData);
+            byte[] modelData = new byte[inputStream.available()];
+            int bytesRead = inputStream.read(modelData);
 
-            // Создаем ByteBuffer напрямую
-            ByteBuffer buffer = ByteBuffer.allocateDirect(fileSize);
+            if (bytesRead != modelData.length) {
+                throw new IOException("Failed to read complete model file");
+            }
+
+            // Создаем ByteBuffer
+            ByteBuffer buffer = ByteBuffer.allocateDirect(modelData.length);
+            buffer.order(ByteOrder.nativeOrder());
             buffer.put(modelData);
-            buffer.position(0);
+            buffer.rewind();
 
-            // Возвращаем как MappedByteBuffer
-            return (MappedByteBuffer) buffer.asReadOnlyBuffer();
+            return buffer;
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to load model file: " + MODEL_FILE, e);
+            throw new IOException("Model file not found or corrupted: " + MODEL_FILE, e);
         }
     }
 
     public List<ExerciseClassification> classifyImage(Bitmap bitmap) {
-        if (interpreter == null || labels == null) {
-            Log.e(TAG, "Classifier not initialized");
+        if (interpreter == null || labels == null || labels.isEmpty()) {
+            Log.e(TAG, "Classifier not properly initialized");
             return Collections.emptyList();
         }
 
         try {
             // Подготовка изображения
-            inputImageBuffer.load(bitmap);
+            Bitmap processedBitmap = Bitmap.createScaledBitmap(bitmap, IMAGE_WIDTH, IMAGE_HEIGHT, true);
+            inputImageBuffer.load(processedBitmap);
+
+            // Обработка изображения
             inputImageBuffer = imageProcessor.process(inputImageBuffer);
 
-            // Подготовка вывода
-            int numClasses = labels.size();
-            float[][] output = new float[1][numClasses];
+            // Подготовка вывода для квантованной модели
+            byte[][] output = new byte[1][labels.size()]; // Используем byte, а не float
 
             // Выполнение инференса
             interpreter.run(inputImageBuffer.getBuffer(), output);
 
-            // Получение результатов
-            float[] probabilities = output[0];
+            // Преобразование byte[] в float[] (масштабирование)
+            float[] probabilities = new float[output[0].length];
+            for (int i = 0; i < output[0].length; i++) {
+                probabilities[i] = (output[0][i] & 0xff) / 255.0f;
+            }
 
-            // Фильтрация и сортировка результатов
             return getTopResults(probabilities);
 
         } catch (Exception e) {
-            Log.e(TAG, "Error classifying image", e);
+            Log.e(TAG, "Error during image classification", e);
             return Collections.emptyList();
         }
     }
@@ -173,11 +151,11 @@ public class ImageClassifierHelper {
                 Comparator.comparing(ExerciseClassification::getConfidence)
         );
 
-        for (int i = 0; i < Math.min(probabilities.length, labels.size()); i++) {
+        for (int i = 0; i < probabilities.length; i++) {
             float confidence = probabilities[i];
 
-            // Фильтрация по порогу
-            if (confidence > THRESHOLD) {
+            // Фильтрация по порогу уверенности
+            if (confidence >= CONFIDENCE_THRESHOLD && i < labels.size()) {
                 String label = labels.get(i);
 
                 if (pq.size() < MAX_RESULTS) {
@@ -189,11 +167,11 @@ public class ImageClassifierHelper {
             }
         }
 
-        // Конвертация в список и сортировка по убыванию confidence
+        // Конвертация в список и сортировка по убыванию уверенности
         List<ExerciseClassification> results = new ArrayList<>(pq);
         results.sort((a, b) -> Float.compare(b.getConfidence(), a.getConfidence()));
 
-        Log.d(TAG, "Found " + results.size() + " results");
+        Log.d(TAG, "Found " + results.size() + " valid results");
         return results;
     }
 
@@ -213,8 +191,13 @@ public class ImageClassifierHelper {
             this.confidence = confidence;
         }
 
-        public String getLabel() { return label; }
-        public float getConfidence() { return confidence; }
+        public String getLabel() {
+            return label;
+        }
+
+        public float getConfidence() {
+            return confidence;
+        }
 
         @Override
         public String toString() {
