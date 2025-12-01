@@ -2,4 +2,12 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <!-- Основные цвета для иконок -->
+    <color name="primary_color">#6200EE</color>
+    <color name="icon_color">#000000</color>
+
+    <!-- Альтернативные цвета для темной темы -->
+    <color name="icon_color_light">#FFFFFF</color>
+
 </resources>

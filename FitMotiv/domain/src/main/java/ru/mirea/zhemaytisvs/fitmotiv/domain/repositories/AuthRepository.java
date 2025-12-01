@@ -10,6 +10,9 @@ public interface AuthRepository {
     User getCurrentUser();
     boolean isUserLoggedIn();
 
+    // Добавленный метод для обновления фото профиля
+    void updateProfilePhoto(String photoUrl, AuthCallback callback);
+
     interface AuthCallback {
         void onSuccess(User user);
         void onError(String errorMessage);

@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/homeFragment">
+
+    <!-- Home Fragment -->
+    <fragment
+        android:id="@+id/homeFragment"
+        android:name="ru.mirea.zhemaytisvs.fitmotiv.presentation.fragments.HomeFragment"
+        android:label="Фитнес-Мотиватор"
+        tools:layout="@layout/fragment_home">
+
+        <action
+            android:id="@+id/action_homeFragment_to_workoutListFragment"
+            app:destination="@id/workoutListFragment" />
+        <action
+            android:id="@+id/action_homeFragment_to_profileFragment"
+            app:destination="@id/profileFragment" />
+        <action
+            android:id="@+id/action_homeFragment_to_exerciseAnalysisFragment"
+        app:destination="@id/exerciseAnalysisFragment" />
+    </fragment>
+
+    <!-- Workout List Fragment -->
+    <fragment
+        android:id="@+id/workoutListFragment"
+        android:name="ru.mirea.zhemaytisvs.fitmotiv.presentation.fragments.WorkoutListFragment"
+        android:label="Мои тренировки"
+        tools:layout="@layout/fragment_workout_list">
+
+        <action
+            android:id="@+id/action_workoutListFragment_to_workoutDetailFragment"
+            app:destination="@id/workoutDetailFragment" />
+    </fragment>
+
+    <!-- Profile Fragment -->
+    <fragment
+        android:id="@+id/profileFragment"
+        android:name="ru.mirea.zhemaytisvs.fitmotiv.presentation.fragments.ProfileFragment"
+        android:label="Профиль"
+        tools:layout="@layout/fragment_profile" />
+
+    <!-- Exercise Analysis Fragment -->
+    <fragment
+        android:id="@+id/exerciseAnalysisFragment"
+    android:name="ru.mirea.zhemaytisvs.fitmotiv.presentation.fragments.ExerciseAnalysisFragment"
+    android:label="Анализ упражнений"
+    tools:layout="@layout/fragment_exercise_analysis" />
+
+    <!-- Workout Detail Fragment -->
+    <fragment
+        android:id="@+id/workoutDetailFragment"
+        android:name="ru.mirea.zhemaytisvs.fitmotiv.presentation.fragments.WorkoutDetailFragment"
+        android:label="Детали тренировки"
+        tools:layout="@layout/fragment_workout_detail">
+
+        <argument
+            android:name="workoutId"
+            app:argType="string" />
+    </fragment>
+
+</navigation>

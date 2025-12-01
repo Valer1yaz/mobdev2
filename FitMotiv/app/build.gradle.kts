@@ -44,25 +44,43 @@ dependencies {
     implementation(libs.constraintlayout)
     implementation(libs.cardview)
     implementation(libs.recyclerview)
+    implementation(libs.navigation.fragment)
+    implementation(libs.navigation.ui)
+    implementation(libs.firebase.database)
+    implementation(libs.firebase.storage)
     testImplementation(libs.junit)
     implementation (libs.room.runtime)
     annotationProcessor (libs.room.compiler)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
 
+    // firebase
     implementation("com.google.firebase:firebase-auth:22.1.2")
     implementation("com.google.android.gms:play-services-auth:20.7.0")
     implementation("com.google.android.material:material:1.9.0")
+    implementation("com.google.firebase:firebase-storage:20.3.0")
     
     // ViewModel & LiveData
     implementation(libs.lifecycle.viewmodel)
     implementation(libs.lifecycle.livedata)
     implementation(libs.lifecycle.runtime)
-    
-    // Glide для загрузки изображений
-    implementation("com.github.bumptech.glide:glide:4.16.0")
-    
-    // TensorFlow Lite для распознавания изображений
-    implementation("org.tensorflow:tensorflow-lite:2.14.0")
+
+// TensorFlow Lite для классификации изображений
+    implementation("org.tensorflow:tensorflow-lite:2.13.0")
     implementation("org.tensorflow:tensorflow-lite-support:0.4.4")
+    implementation("org.tensorflow:tensorflow-lite-metadata:0.4.4")
+// Для использования GPU (опционально)
+    implementation("org.tensorflow:tensorflow-lite-gpu:2.13.0")
+
+    // Navigation Component
+    implementation("androidx.navigation:navigation-fragment-ktx:2.5.3")
+    implementation("androidx.navigation:navigation-ui-ktx:2.5.3")
+
+    // glide для изображений
+    implementation ("com.github.bumptech.glide:glide:4.15.1")
+    annotationProcessor ("com.github.bumptech.glide:compiler:4.15.1")
+
+    implementation("androidx.camera:camera-camera2:1.3.0")
+    implementation("androidx.camera:camera-lifecycle:1.3.0")
+    implementation("androidx.camera:camera-view:1.3.0")
 }

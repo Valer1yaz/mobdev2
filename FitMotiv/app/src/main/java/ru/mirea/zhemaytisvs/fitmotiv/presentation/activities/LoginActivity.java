@@ -12,6 +12,10 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.auth.UserProfileChangeRequest;
+
 import ru.mirea.zhemaytisvs.fitmotiv.R;
 import ru.mirea.zhemaytisvs.fitmotiv.domain.entities.User;
 import ru.mirea.zhemaytisvs.fitmotiv.domain.repositories.AuthRepository;
@@ -34,12 +38,18 @@ public class LoginActivity extends AppCompatActivity {
     private LoginAsGuestUseCase loginAsGuestUseCase;
     private AuthRepository authRepository;
 
+    // Добавляем FirebaseAuth
+    private FirebaseAuth firebaseAuth;
+
     private boolean isRegisterMode = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
+
+        // Инициализируем FirebaseAuth
+        firebaseAuth = FirebaseAuth.getInstance();
 
         initializeDependencies();
         initializeUI();
@@ -164,20 +174,60 @@ public class LoginActivity extends AppCompatActivity {
         }
 
         showLoading(true);
-        registerUseCase.execute(email, password, displayName, new AuthRepository.AuthCallback() {
-            @Override
-            public void onSuccess(User user) {
-                showLoading(false);
-                Toast.makeText(LoginActivity.this, "Регистрация успешна!", Toast.LENGTH_SHORT).show();
-                navigateToMainActivity(user);
-            }
 
-            @Override
-            public void onError(String errorMessage) {
-                showLoading(false);
-                Toast.makeText(LoginActivity.this, "Ошибка регистрации: " + errorMessage, Toast.LENGTH_LONG).show();
-            }
-        });
+        // Используем firebaseAuth вместо auth
+        firebaseAuth.createUserWithEmailAndPassword(email, password)
+                .addOnCompleteListener(this, task -> {
+                    if (task.isSuccessful()) {
+                        FirebaseUser firebaseUser = firebaseAuth.getCurrentUser();
+
+                        if (firebaseUser != null) {
+                            // Обновляем displayName
+                            UserProfileChangeRequest profileUpdates = new UserProfileChangeRequest.Builder()
+                                    .setDisplayName(displayName)
+                                    // Можно добавить фото по умолчанию
+                                    // .setPhotoUri(Uri.parse("https://example.com/default-avatar.png"))
+                                    .build();
+
+                            firebaseUser.updateProfile(profileUpdates)
+                                    .addOnCompleteListener(updateTask -> {
+                                        showLoading(false);
+                                        if (updateTask.isSuccessful()) {
+                                            // Получаем URL фото (может быть null)
+                                            String photoUrl = null;
+                                            if (firebaseUser.getPhotoUrl() != null) {
+                                                photoUrl = firebaseUser.getPhotoUrl().toString();
+                                            }
+
+                                            User user = new User(
+                                                    firebaseUser.getUid(),
+                                                    firebaseUser.getEmail(),
+                                                    firebaseUser.getDisplayName(),
+                                                    photoUrl,
+                                                    false
+                                            );
+
+                                            Toast.makeText(LoginActivity.this, "Регистрация успешна!", Toast.LENGTH_SHORT).show();
+                                            navigateToMainActivity(user);
+                                        } else {
+                                            Toast.makeText(LoginActivity.this,
+                                                    "Ошибка обновления профиля: " +
+                                                            (updateTask.getException() != null ?
+                                                                    updateTask.getException().getMessage() : "Неизвестная ошибка"),
+                                                    Toast.LENGTH_LONG).show();
+                                        }
+                                    });
+                        } else {
+                            showLoading(false);
+                            Toast.makeText(LoginActivity.this, "Ошибка получения пользователя", Toast.LENGTH_LONG).show();
+                        }
+                    } else {
+                        showLoading(false);
+                        String errorMessage = task.getException() != null ?
+                                task.getException().getMessage() : "Неизвестная ошибка регистрации";
+                        Toast.makeText(LoginActivity.this, "Ошибка регистрации: " + errorMessage, Toast.LENGTH_LONG).show();
+                    }
+                });
     }
 
     private void loginAsGuest() {

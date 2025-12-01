@@ -20,6 +20,8 @@ import ru.mirea.zhemaytisvs.fitmotiv.domain.repositories.QuoteRepository;
 import ru.mirea.zhemaytisvs.fitmotiv.domain.repositories.WorkoutRepository;
 import ru.mirea.zhemaytisvs.fitmotiv.domain.usercases.*;
 import ru.mirea.zhemaytisvs.fitmotiv.data.repositories.*;
+import ru.mirea.zhemaytisvs.fitmotiv.domain.repositories.AuthRepository;
+
 
 public class MainViewModel extends AndroidViewModel {
 
@@ -29,6 +31,8 @@ public class MainViewModel extends AndroidViewModel {
     private DeleteWorkoutUseCase deleteWorkoutUseCase;
     private GetMotivationalQuoteUseCase getMotivationalQuoteUseCase;
     private GetCurrentUserUseCase getCurrentUserUseCase;
+
+    private AuthRepository authRepository;
 
     // Executor для фоновых операций
     private ExecutorService executorService;
@@ -133,6 +137,22 @@ public class MainViewModel extends AndroidViewModel {
                 currentUserLiveData.postValue(user);
             } catch (Exception e) {
                 currentUserLiveData.postValue(null);
+            }
+        });
+    }
+
+    public void updateProfilePhoto(String photoUrl, AuthRepository.AuthCallback callback) {
+        executorService.execute(() -> {
+            try {
+                // Здесь можно создать UseCase для обновления фото
+                // Или напрямую использовать authRepository
+                if (authRepository != null) {
+                    authRepository.updateProfilePhoto(photoUrl, callback);
+                } else {
+                    callback.onError("AuthRepository not initialized");
+                }
+            } catch (Exception e) {
+                callback.onError("Error updating profile photo: " + e.getMessage());
             }
         });
     }

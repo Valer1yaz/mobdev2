@@ -1,7 +1,7 @@
-// AuthRepositoryImpl.java
 package ru.mirea.zhemaytisvs.fitmotiv.data.repositories;
 
 import android.content.Context;
+import android.net.Uri;
 import android.util.Log;
 
 import com.google.firebase.auth.FirebaseAuth;
@@ -24,33 +24,41 @@ public class AuthRepositoryImpl implements AuthRepository {
         restoreUserSession();
     }
 
-    /**
-     * Восстанавливает пользователя из Firebase Auth или сохраненной сессии
-     */
-
     private void restoreUserSession() {
         Log.d(TAG, "Attempting to restore user session...");
 
         // Сначала проверяем Firebase Auth
         FirebaseUser firebaseUser = firebaseAuth.getCurrentUser();
         if (firebaseUser != null) {
-            // Пользователь аутентифицирован через Firebase
-            this.currentUser = new User(
+            // Получаем photoUrl из Firebase
+            String photoUrl = null;
+            if (firebaseUser.getPhotoUrl() != null) {
+                photoUrl = firebaseUser.getPhotoUrl().toString();
+            }
+
+            // Создаем пользователя с photoUrl
+            currentUser = new User(
                     firebaseUser.getUid(),
                     firebaseUser.getEmail(),
                     firebaseUser.getDisplayName(),
+                    photoUrl,
                     false
             );
+
             // Сохраняем в сессию
             sessionManager.saveUserSession(currentUser);
-            Log.d(TAG, "User restored from Firebase Auth: " + currentUser.getUid());
+            Log.d(TAG, "User restored from Firebase Auth: " + currentUser.getUid() +
+                    ", photo: " + (photoUrl != null));
         } else if (sessionManager.hasSavedSession()) {
             // Восстанавливаем из сохраненной сессии
-            this.currentUser = sessionManager.getSavedUser();
-            if (currentUser != null && !currentUser.isGuest()) {
-                Log.d(TAG, "User restored from saved session: " + currentUser.getUid());
-            } else if (currentUser != null && currentUser.isGuest()) {
-                Log.d(TAG, "Guest user restored from saved session");
+            currentUser = sessionManager.getSavedUser();
+            if (currentUser != null) {
+                if (currentUser.isGuest()) {
+                    Log.d(TAG, "Guest user restored from saved session");
+                } else {
+                    Log.d(TAG, "User restored from saved session: " + currentUser.getUid() +
+                            ", photo: " + (currentUser.getPhotoUrl() != null));
+                }
             } else {
                 Log.d(TAG, "Failed to restore user from saved session");
             }
@@ -66,15 +74,24 @@ public class AuthRepositoryImpl implements AuthRepository {
                     if (task.isSuccessful()) {
                         FirebaseUser firebaseUser = firebaseAuth.getCurrentUser();
                         if (firebaseUser != null) {
+                            // Получаем photoUrl из Firebase
+                            String photoUrl = null;
+                            if (firebaseUser.getPhotoUrl() != null) {
+                                photoUrl = firebaseUser.getPhotoUrl().toString();
+                            }
+
                             currentUser = new User(
                                     firebaseUser.getUid(),
                                     firebaseUser.getEmail(),
                                     firebaseUser.getDisplayName(),
+                                    photoUrl,
                                     false
                             );
+
                             // Сохраняем сессию
                             sessionManager.saveUserSession(currentUser);
-                            Log.d(TAG, "User logged in and session saved: " + currentUser.getEmail());
+                            Log.d(TAG, "User logged in and session saved: " + currentUser.getEmail() +
+                                    ", photo: " + (photoUrl != null));
                             callback.onSuccess(currentUser);
                         }
                     } else {
@@ -101,15 +118,24 @@ public class AuthRepositoryImpl implements AuthRepository {
                             firebaseUser.updateProfile(profileUpdates)
                                     .addOnCompleteListener(updateTask -> {
                                         if (updateTask.isSuccessful()) {
+                                            // Получаем обновленного пользователя
+                                            String photoUrl = null;
+                                            if (firebaseUser.getPhotoUrl() != null) {
+                                                photoUrl = firebaseUser.getPhotoUrl().toString();
+                                            }
+
                                             currentUser = new User(
                                                     firebaseUser.getUid(),
                                                     firebaseUser.getEmail(),
                                                     displayName,
+                                                    photoUrl,
                                                     false
                                             );
+
                                             // Сохраняем сессию
                                             sessionManager.saveUserSession(currentUser);
-                                            Log.d(TAG, "User registered and session saved: " + currentUser.getEmail());
+                                            Log.d(TAG, "User registered and session saved: " + currentUser.getEmail() +
+                                                    ", photo: " + (photoUrl != null));
                                             callback.onSuccess(currentUser);
                                         } else {
                                             callback.onError("Failed to set display name");
@@ -152,5 +178,49 @@ public class AuthRepositoryImpl implements AuthRepository {
     @Override
     public boolean isUserLoggedIn() {
         return currentUser != null && !currentUser.isGuest();
+    }
+
+    @Override
+    public void updateProfilePhoto(String photoUrl, AuthCallback callback) {
+        FirebaseUser firebaseUser = firebaseAuth.getCurrentUser();
+
+        if (firebaseUser == null) {
+            callback.onError("Пользователь не аутентифицирован");
+            return;
+        }
+
+        try {
+            // Проверяем, что photoUrl является валидным URL
+            Uri photoUri = Uri.parse(photoUrl);
+
+            UserProfileChangeRequest profileUpdates = new UserProfileChangeRequest.Builder()
+                    .setPhotoUri(photoUri)
+                    .build();
+
+            firebaseUser.updateProfile(profileUpdates)
+                    .addOnCompleteListener(task -> {
+                        if (task.isSuccessful()) {
+                            // Обновляем локального пользователя
+                            if (currentUser != null) {
+                                currentUser.setPhotoUrl(photoUrl);
+                            }
+
+                            // Обновляем сессию
+                            sessionManager.updateUserPhoto(photoUrl);
+
+                            Log.d(TAG, "Profile photo updated successfully: " + photoUrl);
+                            callback.onSuccess(currentUser);
+                        } else {
+                            String errorMessage = task.getException() != null ?
+                                    task.getException().getMessage() : "Не удалось обновить фото профиля";
+                            Log.e(TAG, "Failed to update profile photo: " + errorMessage);
+                            callback.onError(errorMessage);
+                        }
+                    });
+
+        } catch (Exception e) {
+            Log.e(TAG, "Invalid photo URL: " + photoUrl, e);
+            callback.onError("Неверный URL фотографии");
+        }
     }
 }
