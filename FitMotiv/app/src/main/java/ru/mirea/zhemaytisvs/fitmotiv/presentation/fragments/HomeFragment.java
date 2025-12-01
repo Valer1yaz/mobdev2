@@ -19,6 +19,7 @@ import ru.mirea.zhemaytisvs.fitmotiv.R;
 import ru.mirea.zhemaytisvs.fitmotiv.domain.entities.User;
 import ru.mirea.zhemaytisvs.fitmotiv.domain.entities.Workout;
 import ru.mirea.zhemaytisvs.fitmotiv.presentation.activities.AddWorkoutDialog;
+import ru.mirea.zhemaytisvs.fitmotiv.presentation.activities.LoginActivity;
 import ru.mirea.zhemaytisvs.fitmotiv.presentation.viewmodels.MainViewModel;
 
 public class HomeFragment extends Fragment {
@@ -147,11 +148,10 @@ public class HomeFragment extends Fragment {
         dialog.show(getParentFragmentManager(), "AddWorkoutDialog");
     }
 
+    // Реализация выхода
     private void logout() {
-        // Реализация выхода
-        requireActivity().finish();
-        // Или перейти на LoginActivity
-        // Intent intent = new Intent(requireContext(), LoginActivity.class);
-        // startActivity(intent);
+        // перейти на LoginActivity
+        Intent intent = new Intent(requireContext(), LoginActivity.class);
+        startActivity(intent);
     }
 }
