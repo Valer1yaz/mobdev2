@@ -37,10 +37,6 @@
             android:name=".presentation.activities.LoginActivity"
             android:exported="false" />
 
-        <activity
-            android:name=".presentation.activities.WorkoutListActivity"
-            android:exported="false" />
-
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="ru.mirea.zhemaytisvs.fitmotiv.fileprovider"

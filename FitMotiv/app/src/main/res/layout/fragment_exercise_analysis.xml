@@ -12,6 +12,10 @@
         android:orientation="vertical">
 
         <!-- Кнопка назад -->
+        <Space
+            android:layout_width="match_parent"
+            android:layout_height="33dp" />
+
         <Button
             android:id="@+id/btnBack"
             android:layout_width="wrap_content"
@@ -93,7 +97,7 @@
                     android:scaleType="centerCrop"
                     android:background="@color/cardview_light_background"
                     android:contentDescription="Изображение упражнения"
-                    android:src="@drawable/ic_placeholder_image" />
+                    android:src="@drawable/ic_workout" />
 
                 <Button
                     android:id="@+id/btnSelectImage"

@@ -12,6 +12,10 @@
         android:orientation="vertical">
 
         <!-- Кнопка назад -->
+        <Space
+            android:layout_width="match_parent"
+            android:layout_height="43dp" />
+
         <Button
             android:id="@+id/btnBack"
             android:layout_width="wrap_content"
@@ -33,7 +37,7 @@
                 android:layout_height="200dp"
                 android:scaleType="centerCrop"
                 android:contentDescription="Изображение тренировки"
-                android:src="@drawable/workout_placeholder" />
+                android:src="@drawable/ic_workout" />
 
         </androidx.cardview.widget.CardView>
 

@@ -57,6 +57,11 @@ public class LoginActivity extends AppCompatActivity {
 
         // Проверяем, не вошел ли уже пользователь
         checkExistingSession();
+
+        // Проверяем, не пришли ли мы после выхода
+        if (getIntent() != null && getIntent().getBooleanExtra("from_logout", false)) {
+            Toast.makeText(this, "Вы успешно вышли из аккаунта", Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void initializeDependencies() {

@@ -12,6 +12,10 @@
         android:orientation="vertical">
 
         <!-- Карточка профиля -->
+        <Space
+            android:layout_width="match_parent"
+            android:layout_height="62dp" />
+
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -21,48 +25,55 @@
 
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="match_parent"
+                android:background="#FFFFFF"
                 android:orientation="vertical"
-                android:padding="24dp"
-                android:background="#FFFFFF">
+                android:padding="24dp">
 
                 <!-- Аватар -->
                 <ImageView
                     android:id="@+id/ivProfile"
-                    android:layout_width="120dp"
-                    android:layout_height="120dp"
+                    android:layout_width="151dp"
+                    android:layout_height="155dp"
                     android:layout_gravity="center_horizontal"
-                    android:scaleType="centerCrop"
                     android:background="@drawable/circle_background"
-                    android:src="@drawable/ic_profile_placeholder"
-                    android:contentDescription="Аватар профиля" />
+                    android:contentDescription="Аватар профиля"
+                    android:scaleType="centerCrop"
+                    android:src="@drawable/ic_profile" />
 
                 <!-- Кнопки для изменения фото -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
                     android:layout_marginTop="16dp"
-                    android:gravity="center">
+                    android:gravity="center"
+                    android:orientation="horizontal">
 
                     <Button
                         android:id="@+id/btnChangePhoto"
                         android:layout_width="0dp"
-                        android:layout_height="wrap_content"
+                        android:layout_height="match_parent"
                         android:layout_weight="1"
-                        android:text="Выбрать фото"
-                        android:layout_marginEnd="8dp"
                         android:backgroundTint="#2196F3"
+                        android:text="Выбрать фото"
                         android:textColor="#FFFFFF" />
 
                     <Button
                         android:id="@+id/btnTakePhoto"
                         android:layout_width="0dp"
-                        android:layout_height="wrap_content"
+                        android:layout_height="match_parent"
                         android:layout_weight="1"
-                        android:text="Сделать фото"
-                        android:layout_marginStart="8dp"
                         android:backgroundTint="#4CAF50"
+                        android:text="Сделать фото"
+                        android:textColor="#FFFFFF" />
+
+                    <Button
+                        android:id="@+id/btnLogout"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:backgroundTint="#FF4444"
+                        android:text="Выйти"
                         android:textColor="#FFFFFF" />
 
                 </LinearLayout>
@@ -72,21 +83,21 @@
                     android:id="@+id/tvName"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:gravity="center"
                     android:text="Пользователь"
                     android:textSize="24sp"
-                    android:textStyle="bold"
-                    android:gravity="center"
-                    android:layout_marginTop="16dp" />
+                    android:textStyle="bold" />
 
                 <TextView
                     android:id="@+id/tvEmail"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="email@example.com"
-                    android:textSize="16sp"
-                    android:gravity="center"
                     android:layout_marginTop="8dp"
-                    android:textColor="#666" />
+                    android:gravity="center"
+                    android:text="email@example.com"
+                    android:textColor="#666"
+                    android:textSize="16sp" />
 
             </LinearLayout>
 

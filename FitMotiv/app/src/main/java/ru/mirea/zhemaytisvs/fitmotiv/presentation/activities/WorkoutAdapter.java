@@ -123,7 +123,7 @@ public class WorkoutAdapter extends RecyclerView.Adapter<WorkoutAdapter.WorkoutV
                 case STRENGTH: return R.drawable.ic_strength;
                 case YOGA: return R.drawable.ic_yoga;
                 case SWIMMING: return R.drawable.ic_swimming;
-                default: return R.drawable.workout_placeholder;
+                default: return R.drawable.ic_workout;
             }
         }
     }

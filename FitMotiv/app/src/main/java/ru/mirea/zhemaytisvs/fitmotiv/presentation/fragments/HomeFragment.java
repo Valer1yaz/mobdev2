@@ -1,6 +1,5 @@
 package ru.mirea.zhemaytisvs.fitmotiv.presentation.fragments;
 
-import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -19,14 +18,13 @@ import ru.mirea.zhemaytisvs.fitmotiv.R;
 import ru.mirea.zhemaytisvs.fitmotiv.domain.entities.User;
 import ru.mirea.zhemaytisvs.fitmotiv.domain.entities.Workout;
 import ru.mirea.zhemaytisvs.fitmotiv.presentation.activities.AddWorkoutDialog;
-import ru.mirea.zhemaytisvs.fitmotiv.presentation.activities.LoginActivity;
 import ru.mirea.zhemaytisvs.fitmotiv.presentation.viewmodels.MainViewModel;
 
 public class HomeFragment extends Fragment {
 
     private MainViewModel viewModel;
-    private TextView tvQuote, tvWorkoutCount, tvUserInfo;
-    private Button btnAddWorkout, btnViewWorkouts, btnGetQuote, btnLogout, btnAnalyzeExercise;
+    private TextView tvQuote, tvWorkoutCount;
+    private Button btnAddWorkout, btnViewWorkouts, btnGetQuote, btnAnalyzeExercise;
     private User currentUser;
 
     @Override
@@ -53,11 +51,9 @@ public class HomeFragment extends Fragment {
     private void initializeUI(View view) {
         tvQuote = view.findViewById(R.id.tvQuote);
         tvWorkoutCount = view.findViewById(R.id.tvWorkoutCount);
-        tvUserInfo = view.findViewById(R.id.tvUserInfo);
         btnAddWorkout = view.findViewById(R.id.btnAddWorkout);
         btnViewWorkouts = view.findViewById(R.id.btnViewWorkouts);
         btnGetQuote = view.findViewById(R.id.btnGetQuote);
-        btnLogout = view.findViewById(R.id.btnLogout);
         btnAnalyzeExercise = view.findViewById(R.id.btnAnalyzeExercise);
     }
 
@@ -83,13 +79,6 @@ public class HomeFragment extends Fragment {
             if (user != null) {
                 currentUser = user;
                 setupUserMode(user);
-
-                if (tvUserInfo != null) {
-                    String userInfo = user.isGuest() ?
-                            "Гостевой режим" :
-                            "Пользователь: " + (user.getDisplayName() != null ? user.getDisplayName() : user.getEmail());
-                    tvUserInfo.setText(userInfo);
-                }
             }
         });
     }
@@ -103,15 +92,23 @@ public class HomeFragment extends Fragment {
         btnAddWorkout.setOnClickListener(v -> addNewWorkout());
 
         btnViewWorkouts.setOnClickListener(v -> {
+            // Проверяем, не гость ли пользователь
+            if (currentUser != null && currentUser.isGuest()) {
+                Toast.makeText(requireContext(), "Для просмотра тренировок необходимо войти в аккаунт", Toast.LENGTH_SHORT).show();
+                return;
+            }
             // Навигация к списку тренировок
             Navigation.findNavController(v).navigate(R.id.action_homeFragment_to_workoutListFragment);
         });
 
         btnGetQuote.setOnClickListener(v -> viewModel.loadMotivationalQuote());
 
-        btnLogout.setOnClickListener(v -> logout());
-
         btnAnalyzeExercise.setOnClickListener(v -> {
+            // Проверяем, не гость ли пользователь
+            if (currentUser != null && currentUser.isGuest()) {
+                Toast.makeText(requireContext(), "Для анализа упражнений необходимо войти в аккаунт", Toast.LENGTH_SHORT).show();
+                return;
+            }
             // Навигация к анализу упражнений
             Navigation.findNavController(v).navigate(R.id.action_homeFragment_to_exerciseAnalysisFragment);
         });
@@ -135,7 +132,7 @@ public class HomeFragment extends Fragment {
 
     private void addNewWorkout() {
         if (currentUser == null || currentUser.isGuest()) {
-            Toast.makeText(requireContext(), "Для добавления тренировки необходимо зарегистрироваться", Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireContext(), "Для добавления тренировки необходимо войти в аккаунт", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -146,12 +143,5 @@ public class HomeFragment extends Fragment {
             Toast.makeText(requireContext(), "Тренировка добавлена!", Toast.LENGTH_SHORT).show();
         });
         dialog.show(getParentFragmentManager(), "AddWorkoutDialog");
-    }
-
-    // Реализация выхода
-    private void logout() {
-        // перейти на LoginActivity
-        Intent intent = new Intent(requireContext(), LoginActivity.class);
-        startActivity(intent);
     }
 }

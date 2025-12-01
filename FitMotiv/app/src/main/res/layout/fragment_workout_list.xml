@@ -8,6 +8,10 @@
     tools:context=".presentation.fragments.WorkoutListFragment">
 
     <!-- Кнопка назад -->
+    <Space
+        android:layout_width="match_parent"
+        android:layout_height="45dp" />
+
     <Button
         android:id="@+id/btnBack"
         android:layout_width="wrap_content"

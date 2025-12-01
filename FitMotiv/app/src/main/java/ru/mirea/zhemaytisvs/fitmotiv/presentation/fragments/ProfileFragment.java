@@ -30,11 +30,11 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.UUID;
 
 import ru.mirea.zhemaytisvs.fitmotiv.R;
 import ru.mirea.zhemaytisvs.fitmotiv.domain.entities.User;
+import ru.mirea.zhemaytisvs.fitmotiv.presentation.activities.LoginActivity;
 import ru.mirea.zhemaytisvs.fitmotiv.presentation.viewmodels.ProfileViewModel;
 
 public class ProfileFragment extends Fragment {
@@ -42,7 +42,7 @@ public class ProfileFragment extends Fragment {
     private ProfileViewModel viewModel;
     private ImageView ivProfile;
     private TextView tvEmail, tvName, tvTotalTrainings, tvTotalCalories;
-    private Button btnChangePhoto, btnTakePhoto;
+    private Button btnChangePhoto, btnTakePhoto, btnLogout;
 
     private static final int REQUEST_PICK_PHOTO = 100;
     private static final int REQUEST_TAKE_PHOTO = 101;
@@ -82,19 +82,26 @@ public class ProfileFragment extends Fragment {
         tvTotalCalories = view.findViewById(R.id.tvTotalCalories);
         btnChangePhoto = view.findViewById(R.id.btnChangePhoto);
         btnTakePhoto = view.findViewById(R.id.btnTakePhoto);
+        btnLogout = view.findViewById(R.id.btnLogout);
     }
 
     private void setupLiveDataObservers() {
-        viewModel.getUserData().observe(getViewLifecycleOwner(), user -> {
+        // Наблюдатель для пользователя
+        viewModel.getUserLiveData().observe(getViewLifecycleOwner(), user -> {
             if (user != null) {
                 updateUserInfo(user);
             }
         });
 
-        viewModel.getTrainingStats().observe(getViewLifecycleOwner(), stats -> {
+        // Наблюдатель для статистики тренировок
+        viewModel.getWorkoutStatisticsLiveData().observe(getViewLifecycleOwner(), stats -> {
             if (stats != null) {
-                tvTotalTrainings.setText("Всего тренировок: " + stats.getTotalTrainings());
-                tvTotalCalories.setText("Всего калорий: " + stats.getTotalCalories());
+                if (tvTotalTrainings != null) {
+                    tvTotalTrainings.setText("Всего тренировок: " + stats.getTotalWorkouts());
+                }
+                if (tvTotalCalories != null) {
+                    tvTotalCalories.setText("Всего калорий: " + stats.getTotalCalories());
+                }
             }
         });
     }
@@ -110,13 +117,13 @@ public class ProfileFragment extends Fragment {
             Glide.with(this)
                     .load(user.getPhotoUrl())
                     .transition(DrawableTransitionOptions.withCrossFade())
-                    .placeholder(R.drawable.ic_profile_placeholder)
-                    .error(R.drawable.ic_profile_placeholder)
+                    .placeholder(R.drawable.ic_profile)
+                    .error(R.drawable.ic_profile)
                     .circleCrop()
                     .into(ivProfile);
         } else {
             Glide.with(this)
-                    .load(R.drawable.ic_profile_placeholder)
+                    .load(R.drawable.ic_profile)
                     .circleCrop()
                     .into(ivProfile);
         }
@@ -129,6 +136,60 @@ public class ProfileFragment extends Fragment {
 
         if (btnTakePhoto != null) {
             btnTakePhoto.setOnClickListener(v -> takePhoto());
+        }
+
+        if (btnLogout != null) {
+            btnLogout.setOnClickListener(v -> handleLogout());
+        }
+    }
+
+    private void handleLogout() {
+        User currentUser = viewModel.getUserLiveData().getValue();
+
+        if (currentUser != null && currentUser.isGuest()) {
+            // Если пользователь гость, просто переходим на экран авторизации
+            navigateToLoginActivity();
+        } else {
+            // Для зарегистрированного пользователя выполняем выход
+            Toast.makeText(requireContext(), "Выход из аккаунта...", Toast.LENGTH_SHORT).show();
+
+            viewModel.logout(new ru.mirea.zhemaytisvs.fitmotiv.domain.repositories.AuthRepository.LogoutCallback() {
+                @Override
+                public void onSuccess() {
+                    // После успешного выхода переходим на экран авторизации
+                    requireActivity().runOnUiThread(() -> {
+                        navigateToLoginActivity();
+                    });
+                }
+
+                @Override
+                public void onError(String errorMessage) {
+                    requireActivity().runOnUiThread(() -> {
+                        Toast.makeText(requireContext(), "Ошибка выхода: " + errorMessage, Toast.LENGTH_LONG).show();
+                    });
+                }
+            });
+        }
+    }
+
+    private void navigateToLoginActivity() {
+        try {
+            Intent intent = new Intent(requireContext(), LoginActivity.class);
+
+            // Очищаем историю стека, чтобы нельзя было вернуться назад
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+
+            // Можно передать флаг, что это выход
+            intent.putExtra("from_logout", true);
+
+            startActivity(intent);
+
+            // Завершаем текущую Activity
+            requireActivity().finish();
+
+        } catch (Exception e) {
+            Log.e("ProfileFragment", "Error navigating to LoginActivity", e);
+            Toast.makeText(requireContext(), "Ошибка перехода на экран входа", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -198,7 +259,7 @@ public class ProfileFragment extends Fragment {
             Toast.makeText(requireContext(), "Загрузка фото...", Toast.LENGTH_SHORT).show();
 
             // Получаем текущего пользователя
-            User currentUser = viewModel.getUserData().getValue();
+            User currentUser = viewModel.getUserLiveData().getValue();
             if (currentUser == null || currentUser.isGuest()) {
                 Toast.makeText(requireContext(), "Только зарегистрированные пользователи могут загружать фото", Toast.LENGTH_SHORT).show();
                 return;
@@ -244,8 +305,8 @@ public class ProfileFragment extends Fragment {
                 Glide.with(ProfileFragment.this)
                         .load(photoUrl)
                         .transition(DrawableTransitionOptions.withCrossFade())
-                        .placeholder(R.drawable.ic_profile_placeholder)
-                        .error(R.drawable.ic_profile_placeholder)
+                        .placeholder(R.drawable.ic_profile)
+                        .error(R.drawable.ic_profile)
                         .circleCrop()
                         .into(ivProfile);
 

@@ -54,7 +54,7 @@ public class WorkoutListFragment extends Fragment {
     private void initializeUI(View view) {
         rvWorkouts = view.findViewById(R.id.rvWorkouts);
         tvEmpty = view.findViewById(R.id.tvEmpty);
-        btnBack = view.findViewById(R.id.btnBack); // Добавляем кнопку назад
+        btnBack = view.findViewById(R.id.btnBack); // кнопка назад
 
         workoutAdapter = new WorkoutAdapter(new ArrayList<>(), workout -> {
             // Навигация к деталям тренировки

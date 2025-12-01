@@ -161,13 +161,22 @@ public class AuthRepositoryImpl implements AuthRepository {
     }
 
     @Override
-    public void logout() {
-        // Выходим из Firebase Auth
-        firebaseAuth.signOut();
-        // Очищаем сессию
-        sessionManager.clearSession();
-        currentUser = null;
-        Log.d(TAG, "User logged out and session cleared");
+    public void logout(LogoutCallback callback) {
+        try {
+            // Выходим из Firebase Auth
+            firebaseAuth.signOut();
+            // Очищаем сессию
+            sessionManager.clearSession();
+            currentUser = null;
+
+            Log.d(TAG, "User logged out and session cleared");
+            callback.onSuccess();
+
+        } catch (Exception e) {
+            String errorMessage = "Ошибка выхода: " + e.getMessage();
+            Log.e(TAG, errorMessage, e);
+            callback.onError(errorMessage);
+        }
     }
 
     @Override

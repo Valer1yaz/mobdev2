@@ -7,137 +7,187 @@ import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.MutableLiveData;
 
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.auth.UserProfileChangeRequest;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.ValueEventListener;
-
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import ru.mirea.zhemaytisvs.fitmotiv.data.repositories.AuthRepositoryImpl;
+import ru.mirea.zhemaytisvs.fitmotiv.data.repositories.WorkoutRepositoryImpl;
 import ru.mirea.zhemaytisvs.fitmotiv.domain.entities.User;
+import ru.mirea.zhemaytisvs.fitmotiv.domain.entities.Workout;
 import ru.mirea.zhemaytisvs.fitmotiv.domain.repositories.AuthRepository;
+import ru.mirea.zhemaytisvs.fitmotiv.domain.repositories.WorkoutRepository;
+import ru.mirea.zhemaytisvs.fitmotiv.domain.usercases.GetCurrentUserUseCase;
+import ru.mirea.zhemaytisvs.fitmotiv.domain.usercases.GetWorkoutHistoryUseCase;
 
 public class ProfileViewModel extends AndroidViewModel {
 
-    private MutableLiveData<User> userData = new MutableLiveData<>();
-    private MutableLiveData<TrainingStats> trainingStats = new MutableLiveData<>();
+    // Use Cases
+    private GetWorkoutHistoryUseCase getWorkoutHistoryUseCase;
+    private GetCurrentUserUseCase getCurrentUserUseCase;
 
-    private FirebaseAuth auth;
-    private DatabaseReference database;
-    private ExecutorService executorService;
+    // Repositories
     private AuthRepository authRepository;
+    private WorkoutRepository workoutRepository;
+
+    // Executor для фоновых операций
+    private ExecutorService executorService;
+
+    // LiveData
+    private MutableLiveData<User> userLiveData;
+    private MutableLiveData<WorkoutStatistics> workoutStatisticsLiveData;
 
     public ProfileViewModel(@NonNull Application application) {
         super(application);
 
-        auth = FirebaseAuth.getInstance();
-        database = FirebaseDatabase.getInstance().getReference();
         executorService = Executors.newSingleThreadExecutor();
-        authRepository = new AuthRepositoryImpl(application);
+
+        // Инициализация репозиториев и Use Cases
+        initializeRepositories(application);
+
+        // Инициализация LiveData
+        initializeLiveData();
     }
 
+    private void initializeRepositories(Application application) {
+        // Инициализация репозиториев
+        workoutRepository = new WorkoutRepositoryImpl(application);
+        authRepository = new AuthRepositoryImpl(application);
+
+        // Инициализация Use Cases
+        getWorkoutHistoryUseCase = new GetWorkoutHistoryUseCase(workoutRepository);
+        getCurrentUserUseCase = new GetCurrentUserUseCase(authRepository);
+    }
+
+    private void initializeLiveData() {
+        userLiveData = new MutableLiveData<>();
+        workoutStatisticsLiveData = new MutableLiveData<>();
+    }
+
+    /**
+     * Загружает данные пользователя и его статистику тренировок
+     */
     public void loadUserData() {
         executorService.execute(() -> {
-            FirebaseUser firebaseUser = auth.getCurrentUser();
+            try {
+                // Получаем текущего пользователя
+                User user = getCurrentUserUseCase.execute();
+                userLiveData.postValue(user);
 
-            if (firebaseUser != null) {
-                // Создаем пользователя с photoUrl из Firebase
-                User user = new User(
-                        firebaseUser.getUid(),
-                        firebaseUser.getEmail(),
-                        firebaseUser.getDisplayName(),
-                        firebaseUser.getPhotoUrl() != null ? firebaseUser.getPhotoUrl().toString() : null,
-                        false
-                );
-                userData.postValue(user);
-
-                // Загружаем статистику тренировок
-                loadTrainingStats(firebaseUser.getUid());
-            } else {
-                // Гостевой режим
-                userData.postValue(User.createGuestUser());
-                trainingStats.postValue(new TrainingStats(0, 0));
+                if (user != null && !user.isGuest()) {
+                    // Загружаем статистику тренировок для аутентифицированного пользователя
+                    loadWorkoutStatistics(user.getUid());
+                } else {
+                    // Для гостя устанавливаем нулевую статистику
+                    workoutStatisticsLiveData.postValue(new WorkoutStatistics(0, 0));
+                }
+            } catch (Exception e) {
+                Log.e("ProfileViewModel", "Error loading user data", e);
+                userLiveData.postValue(User.createGuestUser());
+                workoutStatisticsLiveData.postValue(new WorkoutStatistics(0, 0));
             }
         });
     }
 
-    private void loadTrainingStats(String userId) {
-        database.child("workouts")
-                .orderByChild("userId")
-                .equalTo(userId)
-                .addListenerForSingleValueEvent(new ValueEventListener() {
-                    @Override
-                    public void onDataChange(@NonNull DataSnapshot snapshot) {
-                        int totalTrainings = 0;
-                        int totalCalories = 0;
+    /**
+     * Загружает статистику тренировок для указанного пользователя
+     */
+    private void loadWorkoutStatistics(String userId) {
+        executorService.execute(() -> {
+            try {
+                Log.d("ProfileViewModel", "Loading workout statistics for user: " + userId);
 
-                        for (DataSnapshot workoutSnapshot : snapshot.getChildren()) {
-                            totalTrainings++;
-                            Integer calories = workoutSnapshot.child("calories").getValue(Integer.class);
-                            if (calories != null) {
-                                totalCalories += calories;
-                            }
-                        }
+                // Получаем историю тренировок через UseCase
+                List<Workout> workouts = getWorkoutHistoryUseCase.execute(userId);
+                Log.d("ProfileViewModel", "Found " + (workouts != null ? workouts.size() : 0) + " workouts");
 
-                        trainingStats.postValue(new TrainingStats(totalTrainings, totalCalories));
-                    }
+                // Вычисляем статистику
+                WorkoutStatistics stats = calculateStatistics(workouts != null ? workouts : java.util.Collections.emptyList());
+                workoutStatisticsLiveData.postValue(stats);
 
-                    @Override
-                    public void onCancelled(@NonNull DatabaseError error) {
-                        Log.e("ProfileViewModel", "Error loading training stats", error.toException());
-                        trainingStats.postValue(new TrainingStats(0, 0));
-                    }
-                });
+            } catch (Exception e) {
+                Log.e("ProfileViewModel", "Error loading workout statistics", e);
+                workoutStatisticsLiveData.postValue(new WorkoutStatistics(0, 0));
+            }
+        });
     }
 
+    /**
+     * Вычисляет статистику тренировок на основе списка
+     */
+    private WorkoutStatistics calculateStatistics(List<Workout> workouts) {
+        int totalWorkouts = workouts.size();
+        int totalCalories = 0;
+
+        for (Workout workout : workouts) {
+            totalCalories += workout.getCalories();
+        }
+
+        return new WorkoutStatistics(totalWorkouts, totalCalories);
+    }
+
+    /**
+     * Обновляет фото профиля пользователя
+     */
     public void updateProfilePhoto(String photoUrl, AuthRepository.AuthCallback callback) {
         executorService.execute(() -> {
-            FirebaseUser firebaseUser = auth.getCurrentUser();
+            try {
+                if (authRepository != null) {
+                    authRepository.updateProfilePhoto(photoUrl, new AuthRepository.AuthCallback() {
+                        @Override
+                        public void onSuccess(User user) {
+                            // Обновляем данные пользователя в LiveData
+                            userLiveData.postValue(user);
+                            callback.onSuccess(user);
+                        }
 
-            if (firebaseUser != null) {
-                try {
-                    UserProfileChangeRequest profileUpdates = new UserProfileChangeRequest.Builder()
-                            .setPhotoUri(android.net.Uri.parse(photoUrl))
-                            .build();
-
-                    firebaseUser.updateProfile(profileUpdates)
-                            .addOnCompleteListener(task -> {
-                                if (task.isSuccessful()) {
-                                    // Обновляем локального пользователя
-                                    User currentUser = userData.getValue();
-                                    if (currentUser != null) {
-                                        currentUser.setPhotoUrl(photoUrl);
-                                        userData.postValue(currentUser);
-                                    }
-
-                                    Log.d("ProfileViewModel", "Profile photo updated: " + photoUrl);
-                                    callback.onSuccess(currentUser);
-                                } else {
-                                    callback.onError("Не удалось обновить фото профиля");
-                                }
-                            });
-
-                } catch (Exception e) {
-                    callback.onError("Неверный URL фотографии");
+                        @Override
+                        public void onError(String message) {
+                            callback.onError(message);
+                        }
+                    });
+                } else {
+                    callback.onError("AuthRepository not initialized");
                 }
-            } else {
-                callback.onError("Пользователь не аутентифицирован");
+            } catch (Exception e) {
+                callback.onError("Error updating profile photo: " + e.getMessage());
             }
         });
     }
 
-    public MutableLiveData<User> getUserData() {
-        return userData;
+    /**
+     * Выход из аккаунта
+     */
+    public void logout(AuthRepository.LogoutCallback callback) {
+        executorService.execute(() -> {
+            try {
+                if (authRepository != null) {
+                    authRepository.logout(callback);
+                } else {
+                    callback.onError("AuthRepository not initialized");
+                }
+            } catch (Exception e) {
+                Log.e("ProfileViewModel", "Error during logout", e);
+                callback.onError("Ошибка выхода: " + e.getMessage());
+            }
+        });
     }
 
-    public MutableLiveData<TrainingStats> getTrainingStats() {
-        return trainingStats;
+    /**
+     * Обновляет данные пользователя и статистику (например, при возвращении на экран)
+     */
+    public void refreshData() {
+        loadUserData();
+    }
+
+    // Getters для LiveData
+
+    public MutableLiveData<User> getUserLiveData() {
+        return userLiveData;
+    }
+
+    public MutableLiveData<WorkoutStatistics> getWorkoutStatisticsLiveData() {
+        return workoutStatisticsLiveData;
     }
 
     @Override
@@ -148,21 +198,32 @@ public class ProfileViewModel extends AndroidViewModel {
         }
     }
 
-    public static class TrainingStats {
-        private int totalTrainings;
+    /**
+     * Класс статистики тренировок (переиспользован из MainViewModel)
+     */
+    public static class WorkoutStatistics {
+        private int totalWorkouts;
         private int totalCalories;
 
-        public TrainingStats(int totalTrainings, int totalCalories) {
-            this.totalTrainings = totalTrainings;
+        public WorkoutStatistics(int totalWorkouts, int totalCalories) {
+            this.totalWorkouts = totalWorkouts;
             this.totalCalories = totalCalories;
         }
 
-        public int getTotalTrainings() {
-            return totalTrainings;
+        public int getTotalWorkouts() {
+            return totalWorkouts;
         }
 
         public int getTotalCalories() {
             return totalCalories;
+        }
+
+        @Override
+        public String toString() {
+            return "WorkoutStatistics{" +
+                    "totalWorkouts=" + totalWorkouts +
+                    ", totalCalories=" + totalCalories +
+                    '}';
         }
     }
 }

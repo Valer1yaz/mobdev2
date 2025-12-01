@@ -138,8 +138,8 @@ public class WorkoutDetailFragment extends Fragment {
         Glide.with(this)
                 .load(imageResource)
                 .transition(DrawableTransitionOptions.withCrossFade())
-                .placeholder(R.drawable.workout_placeholder)
-                .error(R.drawable.workout_placeholder)
+                .placeholder(R.drawable.ic_workout)
+                .error(R.drawable.ic_workout)
                 .into(ivWorkoutDetail);
     }
 
@@ -159,7 +159,7 @@ public class WorkoutDetailFragment extends Fragment {
             case STRENGTH: return R.drawable.ic_strength;
             case YOGA: return R.drawable.ic_yoga;
             case SWIMMING: return R.drawable.ic_swimming;
-            default: return R.drawable.workout_placeholder;
+            default: return R.drawable.ic_workout;
         }
     }
 
