@@ -89,10 +89,102 @@ public class SharedViewModel extends ViewModel {
 
 Необходимо	передать данные	из одного фрагмента в другой.
 
-Создан модуль ResultApiFragmentApp для передачи данных через Fragment Result API. Добавлен DataFragment с полем ввода EditText и кнопкой отправки данных. Изначально кнопка не выполняет действий, поэтому реализована логика упаковки данных в Bundle и их передачи через setFragmentResult(). 
+Создан модуль ResultApiFragmentApp для передачи данных через Fragment Result API. 
+
+<img width="429" height="848" alt="image" src="https://github.com/user-attachments/assets/61e36fff-5502-443e-954d-88a4f2097788" /> <img width="419" height="849" alt="image" src="https://github.com/user-attachments/assets/88b65e0a-7693-4b51-8013-5bf248da2aee" />
+
+
+
+Gradle дополнен зависимостями
+```
+    var fragment_version = "1.8.5"
+    implementation ("androidx.fragment:fragment:$fragment_version")
+    implementation ("com.google.android.material:material:1.9.0")
+```
+
+Добавлен DataFragment с полем ввода EditText и кнопкой отправки данных. Изначально кнопка не выполняет действий, поэтому реализована логика упаковки данных в Bundle и их передачи через setFragmentResult(). 
+
+```
+public class DataFragment extends Fragment {
+
+    @Nullable
+    @Override
+    public View onCreateView(@NonNull LayoutInflater inflater,
+                             @Nullable ViewGroup container,
+                             @Nullable Bundle savedInstanceState) {
+        return inflater.inflate(R.layout.fragment_data, container, false);
+    }
+
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+
+        Button button = view.findViewById(R.id.button_send);
+        EditText editText = view.findViewById(R.id.edit_text_data);
+
+        button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String text = editText.getText().toString();
+                Bundle bundle = new Bundle();
+                bundle.putString("key", text);
+
+                getParentFragmentManager().setFragmentResult("requestKey", bundle);
+
+                BottomSheetFragment bottomSheet = new BottomSheetFragment();
+                bottomSheet.show(getParentFragmentManager(), "ModalBottomSheet");
+            }
+        });
+    }
+}
+```
+
 После этого создан BottomSheetFragment, наследующийся от BottomSheetDialogFragment, который первоначально отображался как пустая bottom sheet панель. 
 На следующем этапе в BottomSheetFragment добавлен setFragmentResultListener(), который автоматически получает данные и отображает их в интерфейсе. 
+
+```
+public class BottomSheetFragment extends BottomSheetDialogFragment {
+
+    @Nullable
+    @Override
+    public View onCreateView(@NonNull LayoutInflater inflater,
+                             @Nullable ViewGroup container,
+                             @Nullable Bundle savedInstanceState) {
+        return inflater.inflate(R.layout.fragment_bottom_sheet, container, false);
+    }
+
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+
+        getParentFragmentManager().setFragmentResultListener("requestKey", this,
+                (requestKey, bundle) -> {
+                    String text = bundle.getString("key");
+                    TextView textView = view.findViewById(R.id.text_result);
+                    textView.setText("Полученные данные: " + text);
+                });
+    }
+}
+```
+
 Main Activity динамически добавляет DataFragment при запуске приложения, а BottomSheetFragment отображается поверх основного контента в виде выдвижной панели только после нажатия кнопки отправки.
+
+```
+public class MainActivity extends AppCompatActivity {
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        if (savedInstanceState == null) {
+            getSupportFragmentManager().beginTransaction()
+                    .replace(R.id.fragment_container, new DataFragment())
+                    .commit();
+        }
+    }
+}
+```
 
 -----------
 **Контрольное задание**
