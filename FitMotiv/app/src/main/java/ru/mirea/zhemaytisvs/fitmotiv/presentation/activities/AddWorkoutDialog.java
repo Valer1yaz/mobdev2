@@ -21,27 +21,28 @@ import ru.mirea.zhemaytisvs.fitmotiv.domain.entities.Workout;
 import java.util.Date;
 
 public class AddWorkoutDialog extends DialogFragment {
-    
+
     public interface OnWorkoutAddedListener {
         void onWorkoutAdded(Workout workout);
     }
-    
+
     private OnWorkoutAddedListener listener;
     private Spinner spinnerType;
     private EditText etDuration;
     private EditText etCalories;
     private EditText etDescription;
-    
+    private String userId; // ДОБАВЛЕНО: объявление поля
+
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
         View view = getActivity().getLayoutInflater().inflate(R.layout.dialog_add_workout, null);
-        
+
         spinnerType = view.findViewById(R.id.spinnerWorkoutType);
         etDuration = view.findViewById(R.id.etDuration);
         etCalories = view.findViewById(R.id.etCalories);
         etDescription = view.findViewById(R.id.etDescription);
-        
+
         // Настройка Spinner для типов тренировок
         ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(
                 getActivity(),
@@ -50,17 +51,17 @@ public class AddWorkoutDialog extends DialogFragment {
         );
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerType.setAdapter(adapter);
-        
+
         Button btnSave = view.findViewById(R.id.btnSaveWorkout);
         Button btnCancel = view.findViewById(R.id.btnCancelWorkout);
-        
+
         btnSave.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 Log.d("AddWorkoutDialog", "Save button clicked");
                 if (validateInput()) {
                     Workout workout = createWorkout();
-                    Log.d("AddWorkoutDialog", "Workout created: " + workout.getType() + ", " + workout.getDescription());
+                    Log.d("AddWorkoutDialog", "Workout created: " + workout.getType() + ", " + workout.getDescription() + ", userId: " + workout.getUserId());
                     if (listener != null) {
                         listener.onWorkoutAdded(workout);
                         Log.d("AddWorkoutDialog", "Listener called");
@@ -73,48 +74,54 @@ public class AddWorkoutDialog extends DialogFragment {
                 }
             }
         });
-        
+
         btnCancel.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 dismiss();
             }
         });
-        
+
         builder.setView(view);
         builder.setTitle("Добавить тренировку");
-        
+
         return builder.create();
     }
-    
+
+    // ДОБАВЛЕНО: метод для установки userId
+    public void setUserId(String userId) {
+        this.userId = userId;
+        Log.d("AddWorkoutDialog", "UserId set: " + userId);
+    }
+
     public void setOnWorkoutAddedListener(OnWorkoutAddedListener listener) {
         this.listener = listener;
     }
-    
+
     private boolean validateInput() {
         String durationStr = etDuration.getText().toString().trim();
         String caloriesStr = etCalories.getText().toString().trim();
         String description = etDescription.getText().toString().trim();
-        
+
         if (durationStr.isEmpty()) {
             Toast.makeText(getActivity(), "Введите длительность тренировки", Toast.LENGTH_SHORT).show();
             return false;
         }
-        
+
         if (caloriesStr.isEmpty()) {
             Toast.makeText(getActivity(), "Введите количество сожженных калорий", Toast.LENGTH_SHORT).show();
             return false;
         }
-        
+
         try {
             int duration = Integer.parseInt(durationStr);
             int calories = Integer.parseInt(caloriesStr);
-            
+
             if (duration <= 0) {
                 Toast.makeText(getActivity(), "Длительность должна быть больше 0", Toast.LENGTH_SHORT).show();
                 return false;
             }
-            
+
             if (calories <= 0) {
                 Toast.makeText(getActivity(), "Калории должны быть больше 0", Toast.LENGTH_SHORT).show();
                 return false;
@@ -123,15 +130,15 @@ public class AddWorkoutDialog extends DialogFragment {
             Toast.makeText(getActivity(), "Некорректный формат чисел", Toast.LENGTH_SHORT).show();
             return false;
         }
-        
+
         if (description.isEmpty()) {
             Toast.makeText(getActivity(), "Введите описание тренировки", Toast.LENGTH_SHORT).show();
             return false;
         }
-        
+
         return true;
     }
-    
+
     private Workout createWorkout() {
         String typeStr = spinnerType.getSelectedItem().toString();
         Workout.WorkoutType type = mapStringToWorkoutType(typeStr);
@@ -139,10 +146,21 @@ public class AddWorkoutDialog extends DialogFragment {
         int calories = Integer.parseInt(etCalories.getText().toString().trim());
         String description = etDescription.getText().toString().trim();
         String id = String.valueOf(System.currentTimeMillis());
-        
-        return new Workout(id, type, duration, calories, new Date(), description);
+
+        // ИСПРАВЛЕНО: Создаем тренировку с userId
+        Workout workout = new Workout(id, type, duration, calories, new Date(), description);
+
+        // Устанавливаем userId, если он был передан
+        if (userId != null && !userId.isEmpty()) {
+            workout.setUserId(userId);
+            Log.d("AddWorkoutDialog", "Workout userId set to: " + userId);
+        } else {
+            Log.e("AddWorkoutDialog", "UserId is null or empty! Workout will not be associated with any user.");
+        }
+
+        return workout;
     }
-    
+
     private Workout.WorkoutType mapStringToWorkoutType(String typeStr) {
         switch (typeStr) {
             case "Кардио":
@@ -158,4 +176,3 @@ public class AddWorkoutDialog extends DialogFragment {
         }
     }
 }
-

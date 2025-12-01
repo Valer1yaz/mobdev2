@@ -1,12 +1,14 @@
 package ru.mirea.zhemaytisvs.fitmotiv.presentation.activities;
 
 import android.app.AlertDialog;
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -28,6 +30,7 @@ public class WorkoutListActivity extends AppCompatActivity {
     private WorkoutAdapter workoutAdapter;
     private Button btnBack;
     private TextView tvEmpty;
+    private User currentUser;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,23 +38,64 @@ public class WorkoutListActivity extends AppCompatActivity {
         setContentView(R.layout.activity_workout_list);
         Log.d("WorkoutListActivity", "=== ACTIVITY CREATED ===");
 
+        // Создаем пользователя из Intent
+        initializeUserFromIntent();
         initializeViewModel();
         initializeUI();
         setupLiveDataObservers();
 
-        // Принудительная загрузка данных
-        loadWorkoutsImmediately();
+        // Загружаем тренировки
+        loadWorkouts();
+    }
+    private void initializeUserFromIntent() {
+        Intent intent = getIntent();
+        String userId = intent.getStringExtra("user_id");
+        String email = intent.getStringExtra("user_email");
+        String displayName = intent.getStringExtra("user_display_name");
+        boolean isGuest = intent.getBooleanExtra("is_guest", true);
 
-        // Проверяем начальное состояние UI
-        checkUIState();
-        // Ждем загрузки пользователя перед загрузкой тренировок
-        waitForUserAndLoadWorkouts();
+        if (userId != null) {
+            currentUser = new User(userId, email, displayName, isGuest);
+            Log.d("WorkoutListActivity", "User created from Intent: " + userId);
+        } else {
+            Log.e("WorkoutListActivity", "No user data in Intent");
+            currentUser = User.createGuestUser();
+        }
     }
 
     private void initializeViewModel() {
-        // ИСПРАВЛЕНО: Используем ViewModel от Activity, а не создаем новый
         viewModel = new ViewModelProvider(this).get(MainViewModel.class);
+
+        // Устанавливаем пользователя в ViewModel
+        if (currentUser != null) {
+            // Создаем временный MutableLiveData для установки пользователя
+            MutableLiveData<User> userLiveData = new MutableLiveData<>();
+            userLiveData.setValue(currentUser);
+
+            // Устанавливаем пользователя в ViewModel через рефлексию (временно)
+            try {
+                java.lang.reflect.Field field = MainViewModel.class.getDeclaredField("currentUserLiveData");
+                field.setAccessible(true);
+                MutableLiveData<User> vmUserLiveData = (MutableLiveData<User>) field.get(viewModel);
+                vmUserLiveData.setValue(currentUser);
+                Log.d("WorkoutListActivity", "User set in ViewModel: " + currentUser.getUid());
+            } catch (Exception e) {
+                Log.e("WorkoutListActivity", "Error setting user in ViewModel", e);
+            }
+        }
         Log.d("WorkoutListActivity", "ViewModel initialized");
+    }
+
+    private void loadWorkouts() {
+        Log.d("WorkoutListActivity", "Loading workouts for user: " + (currentUser != null ? currentUser.getUid() : "null"));
+
+        if (currentUser == null || currentUser.isGuest()) {
+            Log.d("WorkoutListActivity", "User is null or guest - showing empty state");
+            showEmptyState("Гостевой режим. Тренировки недоступны.");
+            return;
+        }
+
+        viewModel.loadWorkouts();
     }
 
     private void initializeUI() {
@@ -83,93 +127,73 @@ public class WorkoutListActivity extends AppCompatActivity {
         });
     }
 
-    private void loadWorkoutsImmediately() {
-        Log.d("WorkoutListActivity", "Loading workouts immediately");
-
-        // Проверяем, есть ли уже данные в ViewModel
-        List<Workout> currentWorkouts = viewModel.getWorkoutsLiveData().getValue();
-        Log.d("WorkoutListActivity", "Current workouts in ViewModel: " + (currentWorkouts != null ? currentWorkouts.size() : "null"));
-
-        if (currentWorkouts == null || currentWorkouts.isEmpty()) {
-            Log.d("WorkoutListActivity", "No workouts in ViewModel, loading from database");
-            viewModel.loadWorkouts();
-        } else {
-            Log.d("WorkoutListActivity", "Workouts already in ViewModel: " + currentWorkouts.size());
-            // Обновляем адаптер с существующими данными
-            workoutAdapter.updateData(currentWorkouts);
-            hideEmptyState();
-        }
-    }
-
-    private void waitForUserAndLoadWorkouts() {
+    private void setupLiveDataObservers() {
+        // ИСПРАВЛЕНО: Сначала проверяем пользователя, потом загружаем тренировки
         viewModel.getCurrentUserLiveData().observe(this, new Observer<User>() {
             @Override
             public void onChanged(User user) {
-                if (user != null && !user.isGuest()) {
-                    Log.d("WorkoutListActivity", "User loaded, now loading workouts");
-                    loadWorkouts();
-                    // Убираем наблюдателя после первой успешной загрузки
-                    viewModel.getCurrentUserLiveData().removeObserver(this);
-                } else if (user != null && user.isGuest()) {
-                    Log.d("WorkoutListActivity", "User is guest, showing empty state");
-                    showEmptyState("Гостевой режим. Тренировки недоступны.");
-                } else {
+                Log.d("WorkoutListActivity", "User updated: " + (user != null ? user.getUid() : "null"));
+
+                if (user == null) {
                     Log.d("WorkoutListActivity", "User is null, showing empty state");
                     showEmptyState("Пользователь не найден");
+                    return;
+                }
+
+                if (user.isGuest()) {
+                    Log.d("WorkoutListActivity", "User is guest, showing empty state");
+                    showEmptyState("Гостевой режим. Тренировки недоступны.");
+                    return;
+                }
+
+                // Пользователь загружен и не гость - загружаем тренировки
+                Log.d("WorkoutListActivity", "Valid user loaded, checking existing workouts");
+
+                // Проверяем, есть ли уже данные в ViewModel
+                List<Workout> currentWorkouts = viewModel.getWorkoutsLiveData().getValue();
+                if (currentWorkouts != null && !currentWorkouts.isEmpty()) {
+                    Log.d("WorkoutListActivity", "Using existing workouts: " + currentWorkouts.size());
+                    updateUIWithWorkouts(currentWorkouts);
+                } else {
+                    Log.d("WorkoutListActivity", "No existing workouts, loading from database");
+                    viewModel.loadWorkouts();
                 }
             }
         });
-    }
 
-    private void setupLiveDataObservers() {
+        // Наблюдатель для тренировок
         viewModel.getWorkoutsLiveData().observe(this, new Observer<List<Workout>>() {
             @Override
             public void onChanged(List<Workout> workouts) {
                 Log.d("WorkoutListActivity", "=== WORKOUTS LIVE DATA UPDATED ===");
                 Log.d("WorkoutListActivity", "Received " + (workouts != null ? workouts.size() : 0) + " workouts");
 
-                if (workouts != null && !workouts.isEmpty()) {
-                    Log.d("WorkoutListActivity", "First workout: " + workouts.get(0).getType() + " - " + workouts.get(0).getDescription());
-                } else {
-                    Log.d("WorkoutListActivity", "Workouts list is empty or null");
-                }
-
-                if (workouts != null) {
-                    workoutAdapter.updateData(workouts);
-                    Log.d("WorkoutListActivity", "Adapter updated with " + workouts.size() + " items");
-
-                    if (workouts.isEmpty()) {
-                        Log.d("WorkoutListActivity", "Showing empty state");
-                        showEmptyState("Тренировок пока нет");
-                    } else {
-                        Log.d("WorkoutListActivity", "Hiding empty state, showing RecyclerView");
-                        hideEmptyState();
-                    }
-                } else {
-                    Log.d("WorkoutListActivity", "Workouts list is null");
-                    showEmptyState("Ошибка загрузки тренировок");
-                }
-
-                checkUIState();
-            }
-        });
-
-        // ДОБАВЛЕНО: Наблюдатель для пользователя
-        viewModel.getCurrentUserLiveData().observe(this, new Observer<User>() {
-            @Override
-            public void onChanged(User user) {
-                Log.d("WorkoutListActivity", "User updated: " + (user != null ? user.getUid() : "null"));
-                if (user != null && !user.isGuest()) {
-                    // Если пользователь загружен, но тренировок нет - загружаем
-                    List<Workout> currentWorkouts = viewModel.getWorkoutsLiveData().getValue();
-                    if (currentWorkouts == null || currentWorkouts.isEmpty()) {
-                        Log.d("WorkoutListActivity", "User loaded but no workouts, loading...");
-                        viewModel.loadWorkouts();
-                    }
-                }
+                updateUIWithWorkouts(workouts);
             }
         });
     }
+
+    // ИСПРАВЛЕНО: Вынес логику обновления UI в отдельный метод
+    private void updateUIWithWorkouts(List<Workout> workouts) {
+        if (workouts != null) {
+            workoutAdapter.updateData(workouts);
+            Log.d("WorkoutListActivity", "Adapter updated with " + workouts.size() + " items");
+
+            if (workouts.isEmpty()) {
+                Log.d("WorkoutListActivity", "Showing empty state");
+                showEmptyState("Тренировок пока нет");
+            } else {
+                Log.d("WorkoutListActivity", "Hiding empty state, showing RecyclerView");
+                hideEmptyState();
+            }
+        } else {
+            Log.d("WorkoutListActivity", "Workouts list is null");
+            showEmptyState("Ошибка загрузки тренировок");
+        }
+
+        checkUIState();
+    }
+
     private void checkUIState() {
         Log.d("WorkoutListActivity", "=== UI STATE CHECK ===");
         Log.d("WorkoutListActivity", "tvEmpty: " + (tvEmpty != null ?
@@ -179,28 +203,27 @@ public class WorkoutListActivity extends AppCompatActivity {
         Log.d("WorkoutListActivity", "Adapter item count: " + workoutAdapter.getItemCount());
     }
 
-    private void loadWorkouts() {
-        Log.d("WorkoutListActivity", "Loading workouts...");
-        viewModel.loadWorkouts();
-    }
-
     private void showEmptyState(String message) {
-        if (tvEmpty != null) {
-            tvEmpty.setText(message);
-            tvEmpty.setVisibility(View.VISIBLE);
-        }
-        if (rvWorkouts != null) {
-            rvWorkouts.setVisibility(View.GONE);
-        }
+        runOnUiThread(() -> {
+            if (tvEmpty != null) {
+                tvEmpty.setText(message);
+                tvEmpty.setVisibility(View.VISIBLE);
+            }
+            if (rvWorkouts != null) {
+                rvWorkouts.setVisibility(View.GONE);
+            }
+        });
     }
 
     private void hideEmptyState() {
-        if (tvEmpty != null) {
-            tvEmpty.setVisibility(View.GONE);
-        }
-        if (rvWorkouts != null) {
-            rvWorkouts.setVisibility(View.VISIBLE);
-        }
+        runOnUiThread(() -> {
+            if (tvEmpty != null) {
+                tvEmpty.setVisibility(View.GONE);
+            }
+            if (rvWorkouts != null) {
+                rvWorkouts.setVisibility(View.VISIBLE);
+            }
+        });
     }
 
     /**

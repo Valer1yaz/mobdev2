@@ -10,22 +10,15 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
+
+import java.util.List;
 
 import ru.mirea.zhemaytisvs.fitmotiv.R;
-import ru.mirea.zhemaytisvs.fitmotiv.domain.entities.ExerciseAnalysis;
-import ru.mirea.zhemaytisvs.fitmotiv.domain.entities.ProgressPhoto;
 import ru.mirea.zhemaytisvs.fitmotiv.domain.entities.User;
-import ru.mirea.zhemaytisvs.fitmotiv.domain.entities.UserGoal;
 import ru.mirea.zhemaytisvs.fitmotiv.domain.entities.Workout;
 import ru.mirea.zhemaytisvs.fitmotiv.domain.repositories.AuthRepository;
 import ru.mirea.zhemaytisvs.fitmotiv.presentation.viewmodels.MainViewModel;
 import ru.mirea.zhemaytisvs.fitmotiv.data.repositories.AuthRepositoryImpl;
-
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -35,17 +28,11 @@ public class MainActivity extends AppCompatActivity {
     // UI Components
     private TextView tvQuote;
     private TextView tvWorkoutCount;
-    private TextView tvGoalInfo;
     private TextView tvUserInfo;
-    private RecyclerView rvProgressPhotos;
-    private ProgressPhotoAdapter progressPhotoAdapter;
     private Button btnAddWorkout;
     private Button btnViewWorkouts;
     private Button btnGetQuote;
-    private Button btnSetGoal;
-    private Button btnAnalyzeExercise;
     private Button btnLogout;
-    private Button btnAddPhoto;
 
     // Текущий пользователь
     private User currentUser;
@@ -77,9 +64,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         // Обновляем данные при возврате на экран
-        viewModel.loadProgressPhotos();
         viewModel.loadWorkouts();
-        viewModel.checkGoalProgress();
     }
 
     // Инициализация ViewModel
@@ -171,18 +156,6 @@ public class MainActivity extends AppCompatActivity {
             btnAddWorkout.setText("Добавить тренировку (только для зарегистрированных)");
         }
 
-        if (btnSetGoal != null) {
-            btnSetGoal.setEnabled(false);
-            btnSetGoal.setAlpha(0.5f);
-            btnSetGoal.setText("Установить цель (только для зарегистрированных)");
-        }
-
-        if (btnAnalyzeExercise != null) {
-            btnAnalyzeExercise.setEnabled(false);
-            btnAnalyzeExercise.setAlpha(0.5f);
-            btnAnalyzeExercise.setText("Анализ упражнений (только для зарегистрированных)");
-        }
-
         Toast.makeText(this,
                 "Вы в гостевом режиме. Для полного доступа к функциям зарегистрируйтесь.",
                 Toast.LENGTH_LONG).show();
@@ -195,18 +168,6 @@ public class MainActivity extends AppCompatActivity {
             btnAddWorkout.setEnabled(true);
             btnAddWorkout.setAlpha(1f);
             btnAddWorkout.setText("Добавить тренировку");
-        }
-
-        if (btnSetGoal != null) {
-            btnSetGoal.setEnabled(true);
-            btnSetGoal.setAlpha(1f);
-            btnSetGoal.setText("Установить цель");
-        }
-
-        if (btnAnalyzeExercise != null) {
-            btnAnalyzeExercise.setEnabled(true);
-            btnAnalyzeExercise.setAlpha(1f);
-            btnAnalyzeExercise.setText("Анализ упражнений");
         }
 
         Toast.makeText(this,
@@ -238,34 +199,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        // Наблюдатель для целей (список)
-        viewModel.getGoalsLiveData().observe(this, new Observer<List<UserGoal>>() {
-            @Override
-            public void onChanged(List<UserGoal> goals) {
-                if (goals != null && !goals.isEmpty() && tvGoalInfo != null) {
-                    int completedCount = 0;
-                    for (UserGoal goal : goals) {
-                        if (goal.isCompleted()) completedCount++;
-                    }
-                    String goalInfo = String.format("Целей: %d\nВыполнено: %d\nНе выполнено: %d",
-                            goals.size(), completedCount, goals.size() - completedCount);
-                    tvGoalInfo.setText(goalInfo);
-                } else if (tvGoalInfo != null) {
-                    tvGoalInfo.setText("Цели не установлены");
-                }
-            }
-        });
-
-        // Наблюдатель для фото прогресса
-        viewModel.getProgressPhotosLiveData().observe(this, new Observer<List<ProgressPhoto>>() {
-            @Override
-            public void onChanged(List<ProgressPhoto> photos) {
-                if (photos != null && progressPhotoAdapter != null) {
-                    progressPhotoAdapter.updateData(photos);
-                }
-            }
-        });
-
         // Наблюдатель для пользователя
         viewModel.getCurrentUserLiveData().observe(this, new Observer<User>() {
             @Override
@@ -285,28 +218,9 @@ public class MainActivity extends AppCompatActivity {
                     // Загружаем данные после загрузки пользователя
                     if (!user.isGuest()) {
                         viewModel.loadWorkouts();
-                        viewModel.loadProgressPhotos();
-                        viewModel.loadGoals();
-                        viewModel.checkGoalProgress();
                     }
                 } else {
                     Log.e("MainActivity", "User LiveData returned null");
-                }
-            }
-        });
-
-        // Наблюдатель для анализа упражнений
-        viewModel.getExerciseAnalysisLiveData().observe(this, new Observer<ExerciseAnalysis>() {
-            @Override
-            public void onChanged(ExerciseAnalysis analysis) {
-                if (analysis != null) {
-                    String result = String.format(
-                            "Упражнение: %s\nОценка: %.1f%%\n%s",
-                            analysis.getExerciseName(),
-                            analysis.getCorrectnessScore(),
-                            analysis.getFeedback()
-                    );
-                    showToast("Анализ завершен:\n" + result);
                 }
             }
         });
@@ -316,45 +230,27 @@ public class MainActivity extends AppCompatActivity {
         // Находим все View компоненты
         tvQuote = findViewById(R.id.tvQuote);
         tvWorkoutCount = findViewById(R.id.tvWorkoutCount);
-        tvGoalInfo = findViewById(R.id.tvGoalInfo);
-        tvUserInfo = findViewById(R.id.tvUserInfo); // ДОБАВЛЕНО
-        rvProgressPhotos = findViewById(R.id.rvProgressPhotos);
+        tvUserInfo = findViewById(R.id.tvUserInfo);
         btnAddWorkout = findViewById(R.id.btnAddWorkout);
         btnViewWorkouts = findViewById(R.id.btnViewWorkouts);
         btnGetQuote = findViewById(R.id.btnGetQuote);
-        btnSetGoal = findViewById(R.id.btnSetGoal);
-        btnAnalyzeExercise = findViewById(R.id.btnAnalyzeExercise);
         btnLogout = findViewById(R.id.btnLogout);
-        btnAddPhoto = findViewById(R.id.btnAddPhoto);
 
-        // Настраиваем RecyclerView для фото прогресса
-        progressPhotoAdapter = new ProgressPhotoAdapter(new ArrayList<>());
-        progressPhotoAdapter.setOnPhotoClickListener(new ProgressPhotoAdapter.OnPhotoClickListener() {
-            @Override
-            public void onPhotoClick(ProgressPhoto photo) {
-                openPhotoDetail(photo);
-            }
-        });
-        rvProgressPhotos.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
-        rvProgressPhotos.setAdapter(progressPhotoAdapter);
     }
 
     private void loadInitialData() {
         // Оптимизированная загрузка: сначала критичные данные, затем остальные
-        // Загружаем пользователя в первую очередь (если нужно)
+        // Загружаем пользователя в первую очередь
         if (currentUser == null) {
             viewModel.loadCurrentUser();
         }
         
-        // Загружаем цитату (быстрая операция)
+        // Загружаем цитату
         viewModel.loadMotivationalQuote();
         
         // Загружаем данные для текущего пользователя (если он уже загружен)
         if (currentUser != null && !currentUser.isGuest()) {
             viewModel.loadWorkouts();
-            viewModel.loadProgressPhotos();
-            viewModel.loadGoals();
-            viewModel.checkGoalProgress();
         }
     }
 
@@ -372,10 +268,14 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 Intent intent = new Intent(MainActivity.this, WorkoutListActivity.class);
-                // ДОБАВЛЕНО: Передаем информацию о пользователе
+
+                // Передаем информацию о пользователе
                 User currentUser = viewModel.getCurrentUserLiveData().getValue();
                 if (currentUser != null) {
                     intent.putExtra("user_id", currentUser.getUid());
+                    intent.putExtra("user_email", currentUser.getEmail());
+                    intent.putExtra("user_display_name", currentUser.getDisplayName());
+                    intent.putExtra("is_guest", currentUser.isGuest());
                 }
                 startActivity(intent);
             }
@@ -389,23 +289,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        // Кнопка установки цели
-        btnSetGoal.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                // Открываем Activity со списком целей
-                Intent intent = new Intent(MainActivity.this, GoalsListActivity.class);
-                startActivity(intent);
-            }
-        });
-
-        // Кнопка анализа упражнения
-        btnAnalyzeExercise.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                analyzeExercise();
-            }
-        });
 
         // Кнопка выхода
         btnLogout.setOnClickListener(new View.OnClickListener() {
@@ -415,18 +298,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        // Кнопка добавления фото
-        btnAddPhoto.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (currentUser == null || currentUser.isGuest()) {
-                    showToast("Для добавления фото необходимо зарегистрироваться");
-                    return;
-                }
-                Intent intent = new Intent(MainActivity.this, AddPhotoActivity.class);
-                startActivity(intent);
-            }
-        });
     }
 
     // МЕТОД: Выход из аккаунта
@@ -463,33 +334,20 @@ public class MainActivity extends AppCompatActivity {
         }
 
         AddWorkoutDialog dialog = new AddWorkoutDialog();
+
+        // ДОБАВЛЕНО: Устанавливаем userId
+        dialog.setUserId(user.getUid());
+
         dialog.setOnWorkoutAddedListener(new AddWorkoutDialog.OnWorkoutAddedListener() {
             @Override
             public void onWorkoutAdded(Workout workout) {
-                Log.d("MainActivity", "Workout added via dialog: " + workout.getDescription());
+                Log.d("MainActivity", "Workout added via dialog: " + workout.getDescription() + ", userId: " + workout.getUserId());
                 viewModel.addWorkout(workout);
                 showToast("Тренировка добавлена!");
-                }
+            }
         });
         dialog.show(getSupportFragmentManager(), "AddWorkoutDialog");
     }
-
-
-    private void analyzeExercise() {
-        // Открываем Activity для анализа упражнений
-        Intent intent = new Intent(this, ExerciseAnalysisActivity.class);
-        startActivity(intent);
-    }
-
-    private void openPhotoDetail(ProgressPhoto photo) {
-        Intent intent = new Intent(this, ProgressPhotoDetailActivity.class);
-        intent.putExtra("photo_id", photo.getId());
-        intent.putExtra("image_url", photo.getImageUrl());
-        intent.putExtra("description", photo.getDescription());
-        intent.putExtra("date", photo.getDate().getTime());
-        startActivity(intent);
-    }
-
     private void showToast(String message) {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
     }

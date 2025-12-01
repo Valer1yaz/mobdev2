@@ -24,6 +24,16 @@ public class WorkoutRepositoryImpl implements WorkoutRepository {
 
     @Override
     public void saveWorkout(Workout workout, String userId) {
+
+        Log.d("WorkoutRepository", "Saving workout for user: " + userId);
+        Log.d("WorkoutRepository", "Workout userId: " + workout.getUserId());
+
+        // Если workout.userId не установлен, используем переданный userId
+        if (workout.getUserId() == null) {
+            workout.setUserId(userId);
+            Log.d("WorkoutRepository", "Workout userId was null, set to: " + userId);
+        }
+
         executorService.execute(() -> {
             try {
                 Log.d("WorkoutRepository", "=== SAVE WORKOUT START ===");

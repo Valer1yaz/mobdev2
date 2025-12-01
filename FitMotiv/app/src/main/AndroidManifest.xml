@@ -40,26 +40,6 @@
             android:name=".presentation.activities.WorkoutListActivity"
             android:exported="false" />
 
-        <activity
-            android:name=".presentation.activities.ProgressPhotoDetailActivity"
-            android:exported="false" />
-
-        <activity
-            android:name=".presentation.activities.AddPhotoActivity"
-            android:exported="false" />
-
-        <activity
-            android:name=".presentation.activities.PhotoGalleryActivity"
-            android:exported="false" />
-
-        <activity
-            android:name=".presentation.activities.GoalsListActivity"
-            android:exported="false" />
-
-        <activity
-            android:name=".presentation.activities.ExerciseAnalysisActivity"
-            android:exported="false" />
-
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="ru.mirea.zhemaytisvs.fitmotiv.fileprovider"
