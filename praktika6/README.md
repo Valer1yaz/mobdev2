@@ -192,8 +192,23 @@ public class MainActivity extends AppCompatActivity {
 *Доработка FitMotiv*
 ----------
 
-Задание: реализовать отображение списка из предыдущего занятия с использованием ViewModel и нескольких фрагментов. Добавить фрагмент «Профиль», который на основе авторизационных данных пользователя
-формирует экран. Для отображения экранов и навигации использовать
+Задание: реализовать отображение списка с использованием ViewModel и нескольких фрагментов. 
+
+<img width="1809" height="847" alt="image" src="https://github.com/user-attachments/assets/31288248-4eec-4fe9-aebe-443b17615af3" /> <img width="405" height="845" alt="image" src="https://github.com/user-attachments/assets/c62c1dd9-1bee-46c0-aeb0-8959780f68b5" />
+
+
+
+Добавить фрагмент «Профиль», который на основе авторизационных данных пользователя формирует экран. 
+
+<img width="1803" height="845" alt="image" src="https://github.com/user-attachments/assets/6fbb004d-65ba-46ae-9b38-d09099b09b5f" />
+
+
+Для отображения экранов и навигации использовать
 фрагменты, учесть использование бэк-стека
+
+<img width="408" height="857" alt="image" src="https://github.com/user-attachments/assets/4f24049e-cb94-4aa3-bbfb-8019ed31f4de" />
+
+
+
 
 
