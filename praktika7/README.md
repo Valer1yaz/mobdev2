@@ -20,6 +20,7 @@
 
 Созданы три фрагмента приложения в виде балванок которые выводят своё название
 <img width="289" height="132" alt="image" src="https://github.com/user-attachments/assets/2a0d47ff-182b-4748-af0d-8dbdfd3adcf4" />
+
 Они полностью одинаковы по наполнению, только отличаются выводящимся текстом по названию фрагмента
 <img width="967" height="709" alt="image" src="https://github.com/user-attachments/assets/23c9c0ae-d0ad-4649-bbab-0b7ff915eec0" />
 
