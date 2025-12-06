@@ -20,7 +20,7 @@
             app:destination="@id/profileFragment" />
         <action
             android:id="@+id/action_homeFragment_to_exerciseAnalysisFragment"
-        app:destination="@id/exerciseAnalysisFragment" />
+            app:destination="@id/exerciseAnalysisFragment" />
     </fragment>
 
     <!-- Workout List Fragment -->
@@ -45,9 +45,9 @@
     <!-- Exercise Analysis Fragment -->
     <fragment
         android:id="@+id/exerciseAnalysisFragment"
-    android:name="ru.mirea.zhemaytisvs.fitmotiv.presentation.fragments.ExerciseAnalysisFragment"
-    android:label="Анализ упражнений"
-    tools:layout="@layout/fragment_exercise_analysis" />
+        android:name="ru.mirea.zhemaytisvs.fitmotiv.presentation.fragments.ExerciseAnalysisFragment"
+        android:label="Анализ упражнений"
+        tools:layout="@layout/fragment_exercise_analysis" />
 
     <!-- Workout Detail Fragment -->
     <fragment
