@@ -89,6 +89,49 @@ Mainactivity java написан с использованием binding
 Задание: Реализовать в приложении навигацию с использованием Navigation Component и Navigation
 Drawer/Bottom Navigation.
 
+Я сделала bottom navigation
+
+В Gradle модуля app добавлен вьюбиндинг
+```
+    buildFeatures {
+        viewBinding = true;
+    }
+```
+
+Далее по аналогии с практическим заданием создан файл menu/bottom_navigation_menu.xml 
+
+<img width="571" height="528" alt="image" src="https://github.com/user-attachments/assets/9fd1f973-37a6-45a2-9341-04ee173e2fc8" />
+
+И navigation/nav_graph.xml в котором для навигации перечислены все связи фрагментов приложения 
+
+<img width="1187" height="913" alt="image" src="https://github.com/user-attachments/assets/2ab79118-4fc5-40d3-8cb9-dad451727b10" />
+
+
+<img width="965" height="749" alt="image" src="https://github.com/user-attachments/assets/bf87ed72-5f72-439e-9a22-28921fca01ce" />
+
+<img width="1020" height="732" alt="image" src="https://github.com/user-attachments/assets/2c6bcab1-3c7d-402e-9c6f-0e7716115fb8" />
+
+<img width="1018" height="397" alt="image" src="https://github.com/user-attachments/assets/eaf8e38a-ebe1-46fc-8319-772d5617e6ed" />
+
+В файлы проекта были добавлены подходящие иконки.
+
+В layout/activity_main_nav.xml обозначено расположение на экране bottom_navigation
+
+<img width="825" height="977" alt="image" src="https://github.com/user-attachments/assets/4e24baaa-e1a0-4c8e-bbf3-ba68f7c6ea30" />
+
+В MainActivity.java реализовано функциональное подключение навигационного контроллера к нашему приложению и реализованной нижней менюшке
+
+<img width="1105" height="852" alt="image" src="https://github.com/user-attachments/assets/ed9fa04c-4ede-407b-bb0d-41bdd5864c2f" />
+
+Итог:
+
+<img width="442" height="845" alt="image" src="https://github.com/user-attachments/assets/437a7bfe-58ad-48a4-b12f-4a8fc9ca9c7d" /> <img width="422" height="848" alt="image" src="https://github.com/user-attachments/assets/13f55e87-ffbf-4aca-8cad-8e890744988e" /> <img width="438" height="843" alt="image" src="https://github.com/user-attachments/assets/5bf67c31-c460-41a4-a6a0-30f4516ac7e9" />
+
+
+
+    
+
+
 
 
 
