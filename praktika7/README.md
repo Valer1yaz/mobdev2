@@ -26,7 +26,7 @@
 Также добавлены их xml файлы
 <img width="854" height="577" alt="image" src="https://github.com/user-attachments/assets/2ea8781d-38eb-4437-b2ce-ea33bfc958b4" />
 
-В values/colors были добавлены новые цвета
+В values/colors были добавлены новые цвета, в файлы проекта добавлены иконки
 <img width="581" height="324" alt="image" src="https://github.com/user-attachments/assets/2e43873b-cac4-4857-980e-e5e4b5668b60" />
 
 Обновлено отображение в теме
@@ -52,6 +52,20 @@ Mainactivity java написан с использованием binding
 -----------
 Придумать приложение и реализовать его навигацию с помощью Navigation Drawer, обновить цветовую гамму, реализовать закрытие шторки на кнопку «Back».
 
+По аналогии с предыдущим модулем обновлён файл Gradle, в файлы проекта добавлены иконки, созданы файлы болванок фрагментов и их xml, также xml menu и navigation. Добавлены цвета, дополнена цветами тема.
+
+В папке layout добавлены content_main и nav_header_main
+<img width="829" height="902" alt="image" src="https://github.com/user-attachments/assets/fe106f9b-9d16-437f-99fa-b97170c4ca79" /> <img width="765" height="645" alt="image" src="https://github.com/user-attachments/assets/feaa57db-579a-4d37-ab07-92d0d5910fe1" />
+
+В mainActivity java был подключен контроллер навигации, настроена обработка кнопки "назад" для скрытия шторки при нажатии, если она открыта. Все нажатия назад пропускаем через условие - открыта ли шторка, в ином случае даём сработать кнопке "назад" как обычно
+
+<img width="1027" height="638" alt="image" src="https://github.com/user-attachments/assets/385ea02f-285a-4a36-85ce-f4b6d567f609" />
+
+Вид приложения:
+
+<img width="408" height="806" alt="image" src="https://github.com/user-attachments/assets/baeec820-827d-4212-a14b-069c0d5b4607" /> <img width="403" height="819" alt="image" src="https://github.com/user-attachments/assets/c9e6ad0e-95bb-4282-9f23-6e61bcf37cda" /> 
+
+<img width="392" height="815" alt="image" src="https://github.com/user-attachments/assets/e8457158-930d-446a-8aef-64d857521458" /> <img width="423" height="802" alt="image" src="https://github.com/user-attachments/assets/1a202d08-e3f7-4ebe-bc98-7f74c81dea77" />
 
 -----------
 **Контрольное задание**
