@@ -7,8 +7,6 @@
 
 -----------
 **Практическая часть**
-Для создания проекта с использованием Navigation Drawer средствами IDE
-можно воспользоваться «New - New module - Navigation Drawer Views Activity».
 
 -----------
 1 «BottomNavigationApp».
